@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">EneverreTV</string>
+    <string name="todo">Todo</string>
+    <string name="reconnect">Reconnect</string>
+    <string name="error_connecting_to_the_api">Error connecting to the API</string>
+    <string name="error_playing">Error playing</string>
+    <string name="the_camera_does_not_support_ptz">The camera does not support PTZ</string>
+    <string name="move_the_camera_with_the_pad">Move the camera with the Pad</string>
+    <string name="exiting_ptz_mode">Exiting PTZ mode</string>
+</resources>
