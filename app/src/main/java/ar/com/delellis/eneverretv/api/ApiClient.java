@@ -2,74 +2,81 @@ package ar.com.delellis.eneverretv.api;
 
 import android.util.Base64;
 
-import java.net.MalformedURLException;
-import java.net.URL;
+import okhttp3.Interceptor;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+
+import java.io.IOException;
 
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ApiClient {
-    private String protocol = null;
-    private String baseUrl = null;
-    private int port = -1;
-    private String username = null;
-    private String password = null;
+    private static ApiClient instance;
 
-    private static ApiService apiService = null;
-    private static ApiClient apiClient = null;
+    private final ApiService apiService;
 
-    private ApiClient(String url, String username, String password) {
-        URL host = null;
-        try {
-            host = new URL(url);
-        } catch (MalformedURLException e) {
-            // Nothing...
-            return;
-        }
+    private ApiClient(String baseUrl, String username, String password) {
+        String authHeader = createAuth(username, password);
 
-        this.protocol = host.getProtocol() + "://";
-        this.baseUrl = host.getHost();
-        this.port = host.getPort();
-        this.username = username;
-        this.password = password;
+        OkHttpClient client = new OkHttpClient.Builder()
+                .addInterceptor(new AuthInterceptor(authHeader))
+                .build();
 
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(getApiBase())
+                .baseUrl(ensureTrailingSlash(baseUrl))
+                .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
-        apiService = retrofit.create(ApiService.class);
+
+        this.apiService = retrofit.create(ApiService.class);
     }
 
-    public static ApiClient getInstance (String url, String username, String password) {
-        if (apiClient != null) {
-            // TODO: Thrown if initialized or maybe clean it.
+    public static void init(String baseUrl, String username, String password) {
+        if (instance != null) {
+            throw new IllegalStateException("ApiClient already initialized");
         }
-        apiClient = new ApiClient(url, username, password);
-        return apiClient;
+        instance = new ApiClient(baseUrl, username, password);
     }
 
-    public static ApiClient getInstance() {
-        // TODO: Thrown if not initialized..
-        return apiClient;
+    public static ApiClient get() {
+        if (instance == null) {
+            throw new IllegalStateException("ApiClient not initialized");
+        }
+        return instance;
     }
 
-    public static ApiService getApiService() {
+    public ApiService api() {
         return apiService;
     }
 
-    public String getAuthorization() {
-        String credentials = getCredentials();
-        return "Basic " + Base64.encodeToString(credentials.getBytes(), Base64.URL_SAFE|Base64.NO_WRAP);
+    private String createAuth(String user, String pass) {
+        String credentials = user + ":" + pass;
+        return "Basic " + Base64.encodeToString(
+                credentials.getBytes(),
+                Base64.NO_WRAP
+        );
     }
 
-    private String getApiBase() {
-        if (this.port > 0) {
-            return this.protocol + this.baseUrl + ":" + this.port + "/api/";
+    private String ensureTrailingSlash(String url) {
+        return url.endsWith("/") ? url : url + "/";
+    }
+
+    private static class AuthInterceptor implements Interceptor {
+        private final String authHeader;
+
+        AuthInterceptor(String authHeader) {
+            this.authHeader = authHeader;
         }
-        return this.protocol + this.baseUrl + "/api/";
-    }
 
-    private String getCredentials() {
-        return this.username + ":" + this.password;
+        @Override
+        public Response intercept(Chain chain) throws IOException {
+            Request request = chain.request().newBuilder()
+                    .addHeader("Authorization", authHeader)
+                    .build();
+
+            return chain.proceed(request);
+        }
     }
 }

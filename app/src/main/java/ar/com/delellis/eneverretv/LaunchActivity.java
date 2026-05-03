@@ -26,21 +26,18 @@ public class LaunchActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         SplashScreen splash = SplashScreen.installSplashScreen(this);
-        splash.setKeepOnScreenCondition(() -> {
-            return !ready;
-        });
+        splash.setKeepOnScreenCondition(() -> !ready);
 
         super.onCreate(savedInstanceState);
         setContentView(new FrameLayout(this));
 
+        ApiClient.init(BuildConfig.API_HOST, BuildConfig.API_USER, BuildConfig.API_PASS);
+
         loadCameras();
     }
 
-
     private void loadCameras() {
-        ApiClient apiClient = ApiClient.getInstance(BuildConfig.API_HOST, BuildConfig.API_USER, BuildConfig.API_PASS);
-
-        Call<List<Camera>> camerasCall = ApiClient.getApiService().cameras(apiClient.getAuthorization());
+        Call<List<Camera>> camerasCall = ApiClient.get().api().cameras();
         camerasCall.enqueue(new Callback<List<Camera>>() {
             @Override
             public void onResponse(Call<List<Camera>> call, Response<List<Camera>> response) {
