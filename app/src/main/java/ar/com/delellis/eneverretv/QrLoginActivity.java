@@ -5,7 +5,6 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -18,6 +17,7 @@ import com.google.zxing.MultiFormatWriter;
 import com.google.zxing.common.BitMatrix;
 
 import ar.com.delellis.eneverretv.api.ApiClient;
+import ar.com.delellis.eneverretv.api.PollingManager;
 import ar.com.delellis.eneverretv.api.model.AuthDevice;
 import ar.com.delellis.eneverretv.api.model.AuthDeviceToken;
 import retrofit2.Call;
@@ -30,9 +30,7 @@ public class QrLoginActivity extends AppCompatActivity {
     private ImageView qrImage;
     private TextView txtUserCode;
 
-    private Handler handler = new Handler();
-
-    private boolean authorized = false;
+    private PollingManager pollingManager = new PollingManager();
 
     private AuthDevice authDevice = null;
 
@@ -95,26 +93,32 @@ public class QrLoginActivity extends AppCompatActivity {
     }
 
     private void initPolling() {
-        handler.postDelayed(pollRunnable, 3000);
+        pollingManager.start(callback -> {
+            loginVerify(authDevice.getDeviceCode(), new PollingManager.Callback() {
+                @Override
+                public void onSuccess(boolean shouldContinue) {
+                    callback.onSuccess(shouldContinue);
+                }
+                @Override
+                public void onError() {
+                    callback.onError();
+                }
+            });
+        });
     }
 
-    private Runnable pollRunnable = new Runnable() {
-        @Override
-        public void run() {
-            if (!authorized) {
-                loginVerify(authDevice.getDeviceCode());
-                handler.postDelayed(this, 3000);
-            }
-        }
-    };
-
-    private void loginVerify(String device_code) {
+    private void loginVerify(String device_code, PollingManager.Callback pollingCallback) {
         Log.d(TAG, "Checking code status: " + device_code);
 
-        Call<AuthDeviceToken> authDeviceTokenCall = ApiClient.get().api().authDeviceToken(device_code);
-        authDeviceTokenCall.enqueue(new Callback<AuthDeviceToken>() {
+        Call<AuthDeviceToken> call = ApiClient.get().api().authDeviceToken(device_code);
+        call.enqueue(new Callback<AuthDeviceToken>() {
             @Override
             public void onResponse(Call<AuthDeviceToken> call, Response<AuthDeviceToken> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    pollingCallback.onError();
+                    return;
+                }
+
                 AuthDeviceToken authDeviceToken = response.body();
 
                 String status = authDeviceToken.getStatus();
@@ -126,26 +130,31 @@ public class QrLoginActivity extends AppCompatActivity {
                             .apply();
 
                     onLoginSuccess();
+                    pollingCallback.onSuccess(false);
                 } else if ("expired".equals(status)) {
                     requestCode();
+                    pollingCallback.onSuccess(false);
+                } else {
+                    pollingCallback.onSuccess(true);
                 }
             }
+
             @Override
             public void onFailure(Call<AuthDeviceToken> call, Throwable throwable) {
-                Toast.makeText(QrLoginActivity.this, R.string.error_connecting_to_the_api, Toast.LENGTH_LONG).show();
+                Log.e(TAG, "Polling error: " + throwable.getMessage());
+                pollingCallback.onError();
             }
         });
     }
 
     private void onLoginSuccess() {
-        authorized = true;
         startActivity(new Intent(this, LaunchActivity.class));
         finish();
     }
 
     @Override
     protected void onDestroy() {
-        handler.removeCallbacks(pollRunnable);
+        pollingManager.stop();
         super.onDestroy();
     }
 }

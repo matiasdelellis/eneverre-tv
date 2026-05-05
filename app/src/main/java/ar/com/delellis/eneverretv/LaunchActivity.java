@@ -50,12 +50,12 @@ public class LaunchActivity extends AppCompatActivity {
     }
 
     private void loadCameras(String token) {
-        Call<List<Camera>> camerasCall = ApiClient.get().api().cameras(token);
+        Call<List<Camera>> camerasCall = ApiClient.get().api().cameras("Bearer " + token);
         camerasCall.enqueue(new Callback<List<Camera>>() {
             @Override
             public void onResponse(Call<List<Camera>> call, Response<List<Camera>> response) {
                 List<Camera> cameras = response.body();
-                Log.d(TAG, "We found the cameras. Going to view them.");
+                Log.d(TAG, "We found the " + cameras.size() + " cameras. Going to view them.");
                 ready = true;
                 goToLive(cameras);
             }
