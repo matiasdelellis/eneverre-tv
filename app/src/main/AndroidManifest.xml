@@ -32,6 +32,12 @@
         </activity>
 
         <activity
+            android:name=".QrLoginActivity"
+            android:exported="true"
+            android:theme="@style/Theme.EneverreTV">
+        </activity>
+
+        <activity
             android:name=".LaunchActivity"
             android:exported="true"
             android:theme="@style/Theme.EneverreTV.Splash">
