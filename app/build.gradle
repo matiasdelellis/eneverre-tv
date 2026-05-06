@@ -2,8 +2,11 @@ plugins {
     alias(libs.plugins.android.application)
 }
 
-def localProps = new Properties()
-localProps.load(new FileInputStream(rootProject.file("local.properties")))
+def apiHost = project.findProperty("API_HOST")
+def storeFileProp = project.findProperty("STORE_FILE")
+def storePassword = project.findProperty("STORE_PASSWORD")
+def keyAlias = project.findProperty("KEY_ALIAS")
+def keyPassword = project.findProperty("KEY_PASSWORD")
 
 android {
     namespace 'ar.com.delellis.eneverretv'
@@ -16,17 +19,25 @@ android {
         targetSdk 36
         versionCode 1
         versionName "1.0"
-        buildConfigField "String", "API_HOST", "\"${localProps['API_HOST']}\""
+        buildConfigField "String", "API_HOST", "\"${apiHost}\""
+    }
+
+    signingConfigs {
+        release {
+            if (storeFileProp != null) {
+                storeFile file(storeFileProp)
+                storePassword storePassword
+                keyAlias keyAlias
+                keyPassword keyPassword
+            }
+        }
     }
 
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled true
             shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
-        debug {
-            minifyEnabled false
         }
     }
 
