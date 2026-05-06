@@ -2,11 +2,15 @@ plugins {
     alias(libs.plugins.android.application)
 }
 
-def apiHost = project.findProperty("API_HOST")
+def apiHostProp = project.findProperty("API_HOST")
 def storeFileProp = project.findProperty("STORE_FILE")
-def storePassword = project.findProperty("STORE_PASSWORD")
-def keyAlias = project.findProperty("KEY_ALIAS")
-def keyPassword = project.findProperty("KEY_PASSWORD")
+def storePasswordProp = project.findProperty("STORE_PASSWORD")
+def keyAliasProp = project.findProperty("KEY_ALIAS")
+def keyPasswordProp = project.findProperty("KEY_PASSWORD")
+
+if (!apiHostProp || !storeFileProp || !storePasswordProp || !keyAliasProp || !keyPasswordProp) {
+    throw new GradleException("Missing signing configuration!")
+}
 
 android {
     namespace 'ar.com.delellis.eneverretv'
@@ -19,16 +23,16 @@ android {
         targetSdk 36
         versionCode 1
         versionName "1.0"
-        buildConfigField "String", "API_HOST", "\"${apiHost}\""
+        buildConfigField "String", "API_HOST", "\"${apiHostProp}\""
     }
 
     signingConfigs {
         release {
             if (storeFileProp != null) {
-                storeFile file(storeFileProp)
-                storePassword storePassword
-                keyAlias keyAlias
-                keyPassword keyPassword
+                storeFile = file(storeFileProp)
+                storePassword = storePasswordProp
+                keyAlias = keyAliasProp
+                keyPassword = keyPasswordProp
             }
         }
     }
