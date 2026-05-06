@@ -45,8 +45,20 @@ jobs:
             -PKEY_PASSWORD=${{ secrets.KEY_PASSWORD }} \
             --configuration-cache
 
-      - name: Upload APK
+      - name: Upload ARM64 APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-release
-          path: app/build/outputs/apk/release/*.apk
+          name: enverre-tv-arm64.apk
+          path: app/build/outputs/apk/release/*arm64*.apk
+
+      - name: Upload ARMv7 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: enverre-tv-armv7.apk
+          path: app/build/outputs/apk/release/*armeabi*.apk
+
+      - name: Upload Universal APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: enverre-tv-universal.apk
+          path: app/build/outputs/apk/release/*universal*.apk
