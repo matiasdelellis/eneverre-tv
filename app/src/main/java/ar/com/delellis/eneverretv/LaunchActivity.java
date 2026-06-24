@@ -39,14 +39,23 @@ public class LaunchActivity extends AppCompatActivity {
         String token = prefs.getString("token", null);
         int expire_at = prefs.getInt("expire_at", -1);
 
-        // TODO: check expire_at
-        if (token != null && expire_at > 0) {
+        long nowSeconds = System.currentTimeMillis() / 1000L;
+        if (token != null && expire_at > nowSeconds) {
             Log.d(TAG, "Already logged in. Searching for cameras");
             loadCameras(token);
         } else {
-            Log.d(TAG, "Without logging in. Going to the login screen.");
+            if (token != null) {
+                Log.d(TAG, "Token expired (expire_at=" + expire_at + ", now=" + nowSeconds + "). Clearing session.");
+                clearSession();
+            } else {
+                Log.d(TAG, "Without logging in. Going to the login screen.");
+            }
             goToLogin();
         }
+    }
+
+    private void clearSession() {
+        getSharedPreferences("auth", MODE_PRIVATE).edit().clear().apply();
     }
 
     private void loadCameras(String token) {
@@ -54,6 +63,19 @@ public class LaunchActivity extends AppCompatActivity {
         camerasCall.enqueue(new Callback<List<Camera>>() {
             @Override
             public void onResponse(Call<List<Camera>> call, Response<List<Camera>> response) {
+                if (response.code() == 401) {
+                    Log.w(TAG, "Token rejected (HTTP 401). Clearing session and going to login.");
+                    ready = true;
+                    clearSession();
+                    goToLogin();
+                    return;
+                }
+                if (!response.isSuccessful() || response.body() == null) {
+                    Log.e(TAG, "loadCameras unsuccessful: HTTP " + response.code());
+                    ready = true;
+                    Toast.makeText(LaunchActivity.this, R.string.error_connecting_to_the_api, Toast.LENGTH_LONG).show();
+                    return;
+                }
                 List<Camera> cameras = response.body();
                 Log.d(TAG, "We found the " + cameras.size() + " cameras. Going to view them.");
                 ready = true;
@@ -62,6 +84,7 @@ public class LaunchActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<List<Camera>> call, Throwable throwable) {
                 Log.d(TAG, "loadCameras failure: " + throwable.getMessage());
+                ready = true;
                 Toast.makeText(LaunchActivity.this, R.string.error_connecting_to_the_api, Toast.LENGTH_LONG).show();
             }
         });

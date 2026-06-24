@@ -52,8 +52,13 @@ public class QrLoginActivity extends AppCompatActivity {
         authDeviceCall.enqueue(new Callback<AuthDevice>() {
             @Override
             public void onResponse(Call<AuthDevice> call, Response<AuthDevice> response) {
-                // TODO: Is that always a valid answer?
+                if (!response.isSuccessful() || response.body() == null) {
+                    Log.e(TAG, "requestCode unsuccessful: HTTP " + response.code());
+                    Toast.makeText(QrLoginActivity.this, R.string.error_connecting_to_the_api, Toast.LENGTH_LONG).show();
+                    return;
+                }
                 authDevice = response.body();
+                Log.d(TAG, "requestCode got user_code=" + authDevice.getUserCode());
                 updateQR(authDevice.getUserCode());
 
                 initPolling();
@@ -141,8 +146,9 @@ public class QrLoginActivity extends AppCompatActivity {
                     pollingCallback.onSuccess(false);
                 } else if ("expired".equals(status)) {
                     Log.d(TAG, "loginVerify expired, requesting a new code.");
-                    requestCode();
                     pollingCallback.onSuccess(false);
+                    pollingManager.stop();
+                    requestCode();
                 } else {
                     Log.d(TAG, "loginVerify pending (status=" + status + "), continue polling.");
                     pollingCallback.onSuccess(true);
