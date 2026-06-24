@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.ImageView;
@@ -68,7 +69,9 @@ public class QrLoginActivity extends AppCompatActivity {
     private void updateQR(String user_code) {
         txtUserCode.setText(user_code);
 
-        String qr_code = "eneverre://login?code=" + user_code;
+        Uri apiHost = Uri.parse(BuildConfig.API_HOST);
+        String qr_code = apiHost.getScheme() + "://" + apiHost.getAuthority()
+                + "/?usercode=" + user_code;
         try {
             BitMatrix matrix = new MultiFormatWriter().encode(
                     qr_code,
@@ -114,7 +117,10 @@ public class QrLoginActivity extends AppCompatActivity {
         call.enqueue(new Callback<AuthDeviceToken>() {
             @Override
             public void onResponse(Call<AuthDeviceToken> call, Response<AuthDeviceToken> response) {
+                Log.d(TAG, "loginVerify response: HTTP " + response.code() + " (successful=" + response.isSuccessful() + ")");
+
                 if (!response.isSuccessful() || response.body() == null) {
+                    Log.w(TAG, "loginVerify unsuccessful or empty body. code=" + response.code() + ", body=" + (response.body() != null));
                     pollingCallback.onError();
                     return;
                 }
@@ -122,7 +128,9 @@ public class QrLoginActivity extends AppCompatActivity {
                 AuthDeviceToken authDeviceToken = response.body();
 
                 String status = authDeviceToken.getStatus();
+                Log.d(TAG, "loginVerify status: " + status);
                 if ("approved".equals(status)) {
+                    Log.d(TAG, "loginVerify approved. token=" + (authDeviceToken.getToken() != null ? "present" : "null") + ", expire_at=" + authDeviceToken.getExpiresAt());
                     SharedPreferences prefs = getSharedPreferences("auth", MODE_PRIVATE);
                     prefs.edit()
                             .putString("token", authDeviceToken.getToken())
@@ -132,16 +140,18 @@ public class QrLoginActivity extends AppCompatActivity {
                     onLoginSuccess();
                     pollingCallback.onSuccess(false);
                 } else if ("expired".equals(status)) {
+                    Log.d(TAG, "loginVerify expired, requesting a new code.");
                     requestCode();
                     pollingCallback.onSuccess(false);
                 } else {
+                    Log.d(TAG, "loginVerify pending (status=" + status + "), continue polling.");
                     pollingCallback.onSuccess(true);
                 }
             }
 
             @Override
             public void onFailure(Call<AuthDeviceToken> call, Throwable throwable) {
-                Log.e(TAG, "Polling error: " + throwable.getMessage());
+                Log.e(TAG, "Polling error for device_code=" + device_code + ": " + throwable.getMessage(), throwable);
                 pollingCallback.onError();
             }
         });
