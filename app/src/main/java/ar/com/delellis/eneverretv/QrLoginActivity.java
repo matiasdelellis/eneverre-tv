@@ -48,7 +48,7 @@ public class QrLoginActivity extends AppCompatActivity {
     }
 
     private void requestCode() {
-        Call<AuthDevice> authDeviceCall = ApiClient.get().api().authDevice();
+        Call<AuthDevice> authDeviceCall = ApiClient.get().api().authDevice(DeviceInfo.getDeviceName());
         authDeviceCall.enqueue(new Callback<AuthDevice>() {
             @Override
             public void onResponse(Call<AuthDevice> call, Response<AuthDevice> response) {

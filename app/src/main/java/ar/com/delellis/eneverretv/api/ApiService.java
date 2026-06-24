@@ -9,10 +9,11 @@ import retrofit2.Call;
 import retrofit2.http.GET;
 import retrofit2.http.Header;
 import retrofit2.http.Path;
+import retrofit2.http.Query;
 
 public interface ApiService {
     @GET("auth/device")
-    Call<AuthDevice> authDevice();
+    Call<AuthDevice> authDevice(@Query("device_name") String deviceName);
 
     @GET("auth/device/{device_id}")
     Call<AuthDeviceToken> authDeviceToken(@Path("device_id") String device_id);
