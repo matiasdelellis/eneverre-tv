@@ -38,7 +38,7 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 
 public class UpdateDownloadWorker extends Worker {
-    public static final String KEY_MANIFEST = "manifest";
+    public static final String KEY_BUILD = "build";
     public static final String KEY_ERROR = "error";
     public static final String ERROR_INTEGRITY = "integrity";
     public static final String ERROR_DOWNLOAD = "download";
@@ -51,7 +51,7 @@ public class UpdateDownloadWorker extends Worker {
         super(context, params);
     }
 
-    public static void enqueue(Context context, UpdateManifest manifest) {
+    public static void enqueue(Context context, UpdateManifest.Build build) {
         Constraints constraints = new Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build();
@@ -59,7 +59,7 @@ public class UpdateDownloadWorker extends Worker {
         OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(UpdateDownloadWorker.class)
                 .setConstraints(constraints)
                 .setInputData(new Data.Builder()
-                        .putString(KEY_MANIFEST, manifest.toJson())
+                        .putString(KEY_BUILD, build.toJson())
                         .build())
                 .addTag("update-download")
                 .build();
@@ -70,10 +70,10 @@ public class UpdateDownloadWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        String manifestJson = getInputData().getString(KEY_MANIFEST);
-        UpdateManifest manifest = UpdateManifest.fromJson(manifestJson);
-        if (manifest == null || manifest.getUrl() == null || manifest.getSha256() == null
-                || manifest.getApkFilename() == null) {
+        String buildJson = getInputData().getString(KEY_BUILD);
+        UpdateManifest.Build build = UpdateManifest.Build.fromJson(buildJson);
+        if (build == null || build.getUrl() == null || build.getSha256() == null
+                || build.getApkFilename() == null) {
             return Result.failure(new Data.Builder()
                     .putString(KEY_ERROR, ERROR_DOWNLOAD)
                     .build());
@@ -86,7 +86,7 @@ public class UpdateDownloadWorker extends Worker {
                     .build());
         }
 
-        File outFile = new File(outDir, manifest.getApkFilename());
+        File outFile = new File(outDir, build.getApkFilename());
 
         setForegroundAsync(buildForegroundInfo(getApplicationContext().getString(R.string.update_downloading)));
 
@@ -96,7 +96,7 @@ public class UpdateDownloadWorker extends Worker {
                 .build();
 
         Request request = new Request.Builder()
-                .url(manifest.getUrl())
+                .url(build.getUrl())
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
@@ -125,7 +125,7 @@ public class UpdateDownloadWorker extends Worker {
             }
 
             String actual = toHex(digest);
-            String expected = manifest.getSha256().toLowerCase(Locale.ROOT);
+            String expected = build.getSha256().toLowerCase(Locale.ROOT);
             if (!expected.equals(actual)) {
                 outFile.delete();
                 return Result.failure(new Data.Builder()
@@ -133,7 +133,7 @@ public class UpdateDownloadWorker extends Worker {
                         .build());
             }
 
-            install(getApplicationContext(), outFile, manifest);
+            install(getApplicationContext(), outFile);
             return Result.success();
 
         } catch (IOException e) {
@@ -150,7 +150,7 @@ public class UpdateDownloadWorker extends Worker {
         }
     }
 
-    private void install(Context context, File file, UpdateManifest manifest) {
+    private void install(Context context, File file) {
         Uri uri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", file);
 
         Intent intent = new Intent(Intent.ACTION_INSTALL_PACKAGE);

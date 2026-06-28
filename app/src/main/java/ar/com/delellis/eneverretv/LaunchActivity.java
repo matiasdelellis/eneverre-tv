@@ -41,9 +41,9 @@ public class LaunchActivity extends AppCompatActivity {
 
         UpdateClient.checkOnce(this, new UpdateClient.Callback() {
             @Override
-            public void onUpdateAvailable(UpdateManifest manifest) {
+            public void onUpdateAvailable(UpdateManifest manifest, UpdateManifest.Build build) {
                 if (!isFinishing() && !isDestroyed()) {
-                    showUpdateDialog(manifest);
+                    showUpdateDialog(manifest, build);
                 }
             }
 
@@ -71,7 +71,7 @@ public class LaunchActivity extends AppCompatActivity {
         }
     }
 
-    private void showUpdateDialog(UpdateManifest manifest) {
+    private void showUpdateDialog(UpdateManifest manifest, UpdateManifest.Build build) {
         if (updateDialogShown) {
             return;
         }
@@ -85,7 +85,7 @@ public class LaunchActivity extends AppCompatActivity {
                 .setTitle(title)
                 .setCancelable(!mandatory)
                 .setPositiveButton(R.string.update_action_install, (d, w) -> {
-                    UpdateClient.install(LaunchActivity.this, manifest);
+                    UpdateClient.install(LaunchActivity.this, build);
                 });
 
         if (body != null && !body.isEmpty()) {

@@ -1,10 +1,13 @@
 package ar.com.delellis.eneverretv.update;
 
 import android.content.Context;
+import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import ar.com.delellis.eneverretv.BuildConfig;
@@ -22,7 +25,7 @@ public class UpdateClient {
     private static final AtomicBoolean CHECK_IN_FLIGHT = new AtomicBoolean(false);
 
     public interface Callback {
-        void onUpdateAvailable(UpdateManifest manifest);
+        void onUpdateAvailable(UpdateManifest manifest, UpdateManifest.Build build);
         void onUpToDate();
     }
 
@@ -66,15 +69,22 @@ public class UpdateClient {
                     return;
                 }
 
-                if (isSkipped(context, manifest)) {
+                if (!manifest.isMandatory() && isSkipped(context, manifest)) {
                     Log.d(TAG, "Version " + manifest.getVersionName() + " is in the skip list.");
                     callback.onUpToDate();
                     return;
                 }
 
+                UpdateManifest.Build build = selectBuild(manifest);
+                if (build == null) {
+                    Log.w(TAG, "Manifest has no builds; ignoring.");
+                    callback.onUpToDate();
+                    return;
+                }
+
                 Log.d(TAG, "Update available: " + manifest.getVersionName()
-                        + " (code " + manifest.getVersionCode() + ").");
-                callback.onUpdateAvailable(manifest);
+                        + " (code " + manifest.getVersionCode() + "), abi=" + build.getAbi() + ".");
+                callback.onUpdateAvailable(manifest, build);
             }
 
             @Override
@@ -84,6 +94,33 @@ public class UpdateClient {
                 callback.onUpToDate();
             }
         });
+    }
+
+    @Nullable
+    public static UpdateManifest.Build selectBuild(@NonNull UpdateManifest manifest) {
+        List<UpdateManifest.Build> builds = manifest.getBuilds();
+        if (builds == null || builds.isEmpty()) {
+            return null;
+        }
+
+        String[] supported = Build.SUPPORTED_ABIS;
+        if (supported != null) {
+            for (String abi : supported) {
+                for (UpdateManifest.Build b : builds) {
+                    if (abi != null && abi.equals(b.getAbi())) {
+                        return b;
+                    }
+                }
+            }
+        }
+
+        for (UpdateManifest.Build b : builds) {
+            if ("universal".equals(b.getAbi())) {
+                return b;
+            }
+        }
+
+        return builds.get(0);
     }
 
     public static void skip(@NonNull Context context, @NonNull UpdateManifest manifest) {
@@ -103,8 +140,9 @@ public class UpdateClient {
                 .apply();
     }
 
-    public static void install(@NonNull Context context, @NonNull UpdateManifest manifest) {
-        UpdateDownloadWorker.enqueue(context, manifest);
+    public static void install(@NonNull Context context,
+                               @NonNull UpdateManifest.Build build) {
+        UpdateDownloadWorker.enqueue(context, build);
     }
 
     private static boolean isSkipped(@NonNull Context context, @NonNull UpdateManifest manifest) {

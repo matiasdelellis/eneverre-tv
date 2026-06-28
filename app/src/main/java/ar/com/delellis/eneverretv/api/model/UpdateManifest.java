@@ -1,10 +1,10 @@
 package ar.com.delellis.eneverretv.api.model;
 
 import com.google.gson.Gson;
-import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
 import java.io.Serializable;
+import java.util.List;
 
 public class UpdateManifest implements Serializable {
     private static final Gson GSON = new Gson();
@@ -24,33 +24,20 @@ public class UpdateManifest implements Serializable {
         return GSON.toJson(this);
     }
 
-    @Expose
     @SerializedName("versionName")
     private String versionName;
 
-    @Expose
     @SerializedName("versionCode")
     private int versionCode;
 
-    @Expose
-    @SerializedName("apkFilename")
-    private String apkFilename;
-
-    @Expose
-    @SerializedName("url")
-    private String url;
-
-    @Expose
-    @SerializedName("sha256")
-    private String sha256;
-
-    @Expose
     @SerializedName("mandatory")
     private Boolean mandatory;
 
-    @Expose
     @SerializedName("releaseNotes")
     private String releaseNotes;
+
+    @SerializedName("builds")
+    private List<Build> builds;
 
     public String getVersionName() {
         return versionName;
@@ -60,23 +47,67 @@ public class UpdateManifest implements Serializable {
         return versionCode;
     }
 
-    public String getApkFilename() {
-        return apkFilename;
-    }
-
-    public String getUrl() {
-        return url;
-    }
-
-    public String getSha256() {
-        return sha256;
-    }
-
     public boolean isMandatory() {
         return mandatory != null && mandatory;
     }
 
     public String getReleaseNotes() {
         return releaseNotes;
+    }
+
+    public List<Build> getBuilds() {
+        return builds;
+    }
+
+    public static class Build implements Serializable {
+        @SerializedName("abi")
+        private String abi;
+
+        @SerializedName("apkFilename")
+        private String apkFilename;
+
+        @SerializedName("size")
+        private long size;
+
+        @SerializedName("sha256")
+        private String sha256;
+
+        @SerializedName("url")
+        private String url;
+
+        public String getAbi() {
+            return abi;
+        }
+
+        public String getApkFilename() {
+            return apkFilename;
+        }
+
+        public long getSize() {
+            return size;
+        }
+
+        public String getSha256() {
+            return sha256;
+        }
+
+        public String getUrl() {
+            return url;
+        }
+
+        public String toJson() {
+            return GSON.toJson(this);
+        }
+
+        public static Build fromJson(String json) {
+            if (json == null || json.isEmpty()) {
+                return null;
+            }
+            try {
+                return GSON.fromJson(json, Build.class);
+            } catch (Exception e) {
+                return null;
+            }
+        }
     }
 }

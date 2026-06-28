@@ -81,22 +81,22 @@ jobs:
       - name: Upload ARM64 APK
         uses: actions/upload-artifact@v4
         with:
-          name: eneverre-tv-arm64.apk
+          name: eneverre-tv-arm64-${{ inputs.version_name }}.apk
           path: app/build/outputs/apk/release/*arm64*.apk
 
       - name: Upload ARMv7 APK
         uses: actions/upload-artifact@v4
         with:
-          name: eneverre-tv-armv7.apk
+          name: eneverre-tv-armv7-${{ inputs.version_name }}.apk
           path: app/build/outputs/apk/release/*armeabi*.apk
 
       - name: Upload Universal APK
         uses: actions/upload-artifact@v4
         with:
-          name: eneverre-tv-universal.apk
+          name: eneverre-tv-universal-${{ inputs.version_name }}.apk
           path: app/build/outputs/apk/release/*universal*.apk
 
-      - name: Publish update to eneverre-api
+      - name: Publish updates to eneverre-api
         env:
           VERSION_CODE: ${{ steps.version.outputs.version_code }}
         run: |
@@ -106,38 +106,52 @@ jobs:
             exit 1
           fi
 
-          UNIVERSAL_APK=$(ls app/build/outputs/apk/release/*universal*.apk | head -n 1)
-          if [[ -z "${UNIVERSAL_APK}" || ! -f "${UNIVERSAL_APK}" ]]; then
-            echo "::error::No universal APK found in app/build/outputs/apk/release/."
-            exit 1
+          ARM64_APK=$(ls app/build/outputs/apk/release/*arm64*.apk    | head -n 1)
+          ARMV7_APK=$(ls app/build/outputs/apk/release/*armeabi*.apk  | head -n 1)
+          if [[ -z "${ARM64_APK}" || ! -f "${ARM64_APK}" ]]; then
+            echo "::error::No arm64 APK found."; exit 1
           fi
-          echo "Publishing: ${UNIVERSAL_APK} as ${VERSION_NAME} (code ${VERSION_CODE}, mandatory=${MANDATORY})"
+          if [[ -z "${ARMV7_APK}" || ! -f "${ARMV7_APK}" ]]; then
+            echo "::error::No armv7 APK found."; exit 1
+          fi
 
-          HTTP_STATUS=$(curl -sS -o publish-response.json -w "%{http_code}" \
-            -H "Authorization: Bearer ${UPDATE_TOKEN}" \
-            -F "apk=@${UNIVERSAL_APK}" \
-            -F "versionName=${VERSION_NAME}" \
-            -F "versionCode=${VERSION_CODE}" \
-            -F "releaseNotes=${RELEASE_NOTES}" \
-            -F "mandatory=${MANDATORY}" \
-            -X POST "${API_HOST}admin/app/updates/tv")
+          declare -a ENTRIES=(
+            "arm64-v8a:${ARM64_APK}"
+            "armeabi-v7a:${ARMV7_APK}"
+          )
 
-          echo "Publish HTTP ${HTTP_STATUS}:"
-          cat publish-response.json
-          echo
+          LAST_INDEX=$(( ${#ENTRIES[@]} - 1 ))
+          for i in "${!ENTRIES[@]}"; do
+            entry="${ENTRIES[$i]}"
+            abi="${entry%%:*}"
+            apk="${entry##*:}"
+            if [[ "${i}" -eq "${LAST_INDEX}" ]]; then
+              finalize=true
+            else
+              finalize=false
+            fi
 
-          case "${HTTP_STATUS}" in
-            2*) ;;
-            401)
-              echo "::error::Publish unauthorized (401). Check UPDATE_PUBLISH_TOKEN / Authorization header."
-              exit 1
-              ;;
-            503)
-              echo "::error::Publish disabled on the server (503). Server has no publish_token configured."
-              exit 1
-              ;;
-            *)
-              echo "::error::Publish failed with HTTP ${HTTP_STATUS}. Per protocol any non-2xx fails the build."
-              exit 1
-              ;;
-          esac
+            echo "Publishing: ${apk} as ${abi} (finalize=${finalize})"
+            HTTP_STATUS=$(curl --max-time 1800 -sS -o "publish-${abi}.json" -w "%{http_code}" \
+              -H "Authorization: Bearer ${UPDATE_TOKEN}" \
+              -F "apk_${abi}=@${apk}" \
+              -F "versionName=${VERSION_NAME}" \
+              -F "versionCode=${VERSION_CODE}" \
+              -F "releaseNotes=${RELEASE_NOTES}" \
+              -F "mandatory=${MANDATORY}" \
+              -F "finalize=${finalize}" \
+              -X POST "${API_HOST}admin/app/updates/tv")
+
+            echo "HTTP ${HTTP_STATUS}:"
+            cat "publish-${abi}.json"
+            echo
+
+            case "${HTTP_STATUS}" in
+              2*) ;;
+              401) echo "::error::Publish unauthorized (401). Check UPDATE_PUBLISH_TOKEN / header."; exit 1 ;;
+              413) echo "::error::Body too large (413). Raise [updates] max_apk_size on the server."; exit 1 ;;
+              422) echo "::error::Malformed body (422). Inspect the response."; exit 1 ;;
+              503) echo "::error::Publish disabled on the server (503). No publish_token configured."; exit 1 ;;
+              *)   echo "::error::Publish failed with HTTP ${HTTP_STATUS}."; exit 1 ;;
+            esac
+          done
