@@ -2,6 +2,22 @@ name: Build Signed APK
 
 on:
   workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Release version name (e.g. 1.0.1). Computes versionCode as MAJOR*10000 + MINOR*100 + PATCH.'
+        required: true
+      release_notes:
+        description: 'Release notes shown in the update dialog.'
+        required: false
+        default: ''
+      mandatory:
+        description: 'Force install (no Skip / Later buttons in the dialog).'
+        type: choice
+        required: false
+        default: 'false'
+        options:
+          - 'true'
+          - 'false'
 
 jobs:
   build:
@@ -9,10 +25,25 @@ jobs:
 
     env:
       API_HOST: ${{ secrets.API_HOST }}
+      UPDATE_TOKEN: ${{ secrets.UPDATE_PUBLISH_TOKEN }}
+      VERSION_NAME: ${{ inputs.version_name }}
+      RELEASE_NOTES: ${{ inputs.release_notes }}
+      MANDATORY: ${{ inputs.mandatory }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Compute versionCode
+        id: version
+        run: |
+          set -euo pipefail
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${VERSION_NAME}"
+          if [[ -z "${MAJOR:-}" || -z "${MINOR:-}" || -z "${PATCH:-}" ]]; then
+            echo "::error::version_name must be in MAJOR.MINOR.PATCH form (got '${VERSION_NAME}')"
+            exit 1
+          fi
+          echo "version_code=$((MAJOR * 10000 + MINOR * 100 + PATCH))" >> "$GITHUB_OUTPUT"
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -39,6 +70,8 @@ jobs:
         run: |
           ./gradlew assembleRelease \
             -PAPI_HOST=${API_HOST} \
+            -PVERSION_NAME=${VERSION_NAME} \
+            -PVERSION_CODE=${{ steps.version.outputs.version_code }} \
             -PSTORE_FILE=keystore.jks \
             -PSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }} \
             -PKEY_ALIAS=${{ secrets.KEY_ALIAS }} \
@@ -48,17 +81,63 @@ jobs:
       - name: Upload ARM64 APK
         uses: actions/upload-artifact@v4
         with:
-          name: enverre-tv-arm64.apk
+          name: eneverre-tv-arm64.apk
           path: app/build/outputs/apk/release/*arm64*.apk
 
       - name: Upload ARMv7 APK
         uses: actions/upload-artifact@v4
         with:
-          name: enverre-tv-armv7.apk
+          name: eneverre-tv-armv7.apk
           path: app/build/outputs/apk/release/*armeabi*.apk
 
       - name: Upload Universal APK
         uses: actions/upload-artifact@v4
         with:
-          name: enverre-tv-universal.apk
+          name: eneverre-tv-universal.apk
           path: app/build/outputs/apk/release/*universal*.apk
+
+      - name: Publish update to eneverre-api
+        env:
+          VERSION_CODE: ${{ steps.version.outputs.version_code }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${UPDATE_TOKEN}" ]]; then
+            echo "::error::UPDATE_PUBLISH_TOKEN secret is empty. Cannot publish."
+            exit 1
+          fi
+
+          UNIVERSAL_APK=$(ls app/build/outputs/apk/release/*universal*.apk | head -n 1)
+          if [[ -z "${UNIVERSAL_APK}" || ! -f "${UNIVERSAL_APK}" ]]; then
+            echo "::error::No universal APK found in app/build/outputs/apk/release/."
+            exit 1
+          fi
+          echo "Publishing: ${UNIVERSAL_APK} as ${VERSION_NAME} (code ${VERSION_CODE}, mandatory=${MANDATORY})"
+
+          HTTP_STATUS=$(curl -sS -o publish-response.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${UPDATE_TOKEN}" \
+            -F "apk=@${UNIVERSAL_APK}" \
+            -F "versionName=${VERSION_NAME}" \
+            -F "versionCode=${VERSION_CODE}" \
+            -F "releaseNotes=${RELEASE_NOTES}" \
+            -F "mandatory=${MANDATORY}" \
+            -X POST "${API_HOST}admin/app/updates/tv")
+
+          echo "Publish HTTP ${HTTP_STATUS}:"
+          cat publish-response.json
+          echo
+
+          case "${HTTP_STATUS}" in
+            2*) ;;
+            401)
+              echo "::error::Publish unauthorized (401). Check UPDATE_PUBLISH_TOKEN / Authorization header."
+              exit 1
+              ;;
+            503)
+              echo "::error::Publish disabled on the server (503). Server has no publish_token configured."
+              exit 1
+              ;;
+            *)
+              echo "::error::Publish failed with HTTP ${HTTP_STATUS}. Per protocol any non-2xx fails the build."
+              exit 1
+              ;;
+          esac

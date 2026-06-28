@@ -10,4 +10,15 @@
     <string name="verification_code">Verification Code:</string>
     <string name="scan_the_qr_code_with_your_phone">Scan the QR code with your phone</string>
     <string name="sign_in_to_enverre_tv">Sign in to Enverre TV</string>
+
+    <string name="update_dialog_title">Update available: %1$s</string>
+    <string name="update_action_install">Install</string>
+    <string name="update_action_later">Later</string>
+    <string name="update_action_skip">Skip this version</string>
+    <string name="update_install_chooser">Install update</string>
+    <string name="update_downloading">Downloading update…</string>
+    <string name="update_notification_title">Eneverre TV update</string>
+    <string name="update_action_cancel">Cancel</string>
+    <string name="update_channel_name">App updates</string>
+    <string name="update_channel_description">Downloads and installs new versions of Eneverre TV.</string>
 </resources>

@@ -8,6 +8,9 @@ def storePasswordProp = project.findProperty("STORE_PASSWORD")
 def keyAliasProp = project.findProperty("KEY_ALIAS")
 def keyPasswordProp = project.findProperty("KEY_PASSWORD")
 
+def versionNameProp = project.findProperty("VERSION_NAME") ?: "1.0"
+def versionCodeProp = (project.findProperty("VERSION_CODE") ?: "1").toInteger()
+
 if (!apiHostProp || !storeFileProp || !storePasswordProp || !keyAliasProp || !keyPasswordProp) {
     throw new GradleException("Missing signing configuration!")
 }
@@ -23,8 +26,8 @@ android {
         applicationId "ar.com.delellis.eneverretv"
         minSdk 24
         targetSdk 36
-        versionCode 1
-        versionName "1.0"
+        versionCode versionCodeProp
+        versionName versionNameProp
         buildConfigField "String", "API_HOST", "\"${apiHostProp}\""
     }
 
@@ -88,4 +91,5 @@ dependencies {
     implementation libs.appcompat
     implementation libs.material
     implementation libs.leanback
+    implementation libs.work.manager
 }

@@ -7,6 +7,7 @@ import android.util.Log;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.splashscreen.SplashScreen;
 
@@ -15,6 +16,8 @@ import java.util.List;
 
 import ar.com.delellis.eneverretv.api.ApiClient;
 import ar.com.delellis.eneverretv.api.model.Camera;
+import ar.com.delellis.eneverretv.api.model.UpdateManifest;
+import ar.com.delellis.eneverretv.update.UpdateClient;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -24,6 +27,7 @@ public class LaunchActivity extends AppCompatActivity {
     private static final String TAG = "LaunchActivity";
 
     private boolean ready = false;
+    private boolean updateDialogShown = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,6 +38,19 @@ public class LaunchActivity extends AppCompatActivity {
         setContentView(new FrameLayout(this));
 
         ApiClient.init(BuildConfig.API_HOST);
+
+        UpdateClient.checkOnce(this, new UpdateClient.Callback() {
+            @Override
+            public void onUpdateAvailable(UpdateManifest manifest) {
+                if (!isFinishing() && !isDestroyed()) {
+                    showUpdateDialog(manifest);
+                }
+            }
+
+            @Override
+            public void onUpToDate() {
+            }
+        });
 
         SharedPreferences prefs = getSharedPreferences("auth", MODE_PRIVATE);
         String token = prefs.getString("token", null);
@@ -52,6 +69,39 @@ public class LaunchActivity extends AppCompatActivity {
             }
             goToLogin();
         }
+    }
+
+    private void showUpdateDialog(UpdateManifest manifest) {
+        if (updateDialogShown) {
+            return;
+        }
+        updateDialogShown = true;
+
+        String title = getString(R.string.update_dialog_title, manifest.getVersionName());
+        String body = manifest.getReleaseNotes();
+        boolean mandatory = manifest.isMandatory();
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setCancelable(!mandatory)
+                .setPositiveButton(R.string.update_action_install, (d, w) -> {
+                    UpdateClient.install(LaunchActivity.this, manifest);
+                });
+
+        if (body != null && !body.isEmpty()) {
+            builder.setMessage(body);
+        }
+
+        if (!mandatory) {
+            builder.setNegativeButton(R.string.update_action_later, (d, w) -> d.dismiss());
+            builder.setNeutralButton(R.string.update_action_skip, (d, w) -> {
+                UpdateClient.skip(LaunchActivity.this, manifest);
+            });
+        }
+
+        AlertDialog dialog = builder.create();
+        dialog.setOnDismissListener(d -> updateDialogShown = false);
+        dialog.show();
     }
 
     private void clearSession() {
