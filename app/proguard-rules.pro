@@ -16,6 +16,10 @@
 # debugging stack traces.
 #-keepattributes SourceFile,LineNumberTable
 
+# Workaround for R8 IndexOutOfBoundsException with AGP 9.x + libvlc/okhttp5
+# Disable only the short-method inlining pass (the buggy one), keep the rest
+-optimizations !code/simplification/arithmetic,!field/*,!class/merging/*,!method/inlining/short
+
 # Keep EneverreTv
 -keep class ar.com.delellis.eneverretv.** { *; }
 
