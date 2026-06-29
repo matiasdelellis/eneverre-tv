@@ -5,6 +5,7 @@ import static android.view.View.VISIBLE;
 
 import static java.lang.Math.clamp;
 
+import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.net.Uri;
@@ -47,7 +48,6 @@ public class LiveActivity extends AppCompatActivity {
     private static final long DOUBLE_TAP_TIMEOUT_MS = 500;
 
     private boolean pendingSingleTap = false;
-    private boolean pendingZoomWasEnabled = false;
 
     private List<Camera> cameraList = null;
     private int currentIndex = 0;
@@ -76,14 +76,60 @@ public class LiveActivity extends AppCompatActivity {
             needReconect = false;
         });
 
-        cameraList = (List<Camera>) getIntent().getSerializableExtra(RAW_CAMERAS_LIST_DATA);
-        String cameraId = getIntent().getStringExtra(CURRENT_CAMERA_ID);
-        if (cameraId != null) {
-            currentIndex = findCameraIndex(cameraId);
-        }
-        playVideo(cameraList.get(currentIndex));
+        View gridButton = findViewById(R.id.grid_button);
+        gridButton.setOnClickListener(v -> openLocationGrid());
 
-        TvChannelManager.publish(this, cameraList);
+        List<Camera> fullList = (List<Camera>) getIntent().getSerializableExtra(RAW_CAMERAS_LIST_DATA);
+        if (fullList == null) fullList = new ArrayList<>();
+
+        String cameraId = getIntent().getStringExtra(CURRENT_CAMERA_ID);
+        Camera requested = null;
+        if (cameraId != null) {
+            for (Camera c : fullList) {
+                if (String.valueOf(c.getId()).equals(cameraId)) {
+                    requested = c;
+                    break;
+                }
+            }
+        }
+        if (requested == null) {
+            requested = fullList.isEmpty() ? null : fullList.get(0);
+        }
+
+        if (requested != null) {
+            String locationKey = locationKey(requested);
+            cameraList = new ArrayList<>();
+            for (Camera c : fullList) {
+                if (locationKey(c).equals(locationKey)) {
+                    cameraList.add(c);
+                }
+            }
+            currentIndex = cameraList.indexOf(requested);
+            if (currentIndex < 0) currentIndex = 0;
+
+            if (cameraList.size() > 1) {
+                gridButton.setVisibility(VISIBLE);
+            } else {
+                gridButton.setVisibility(GONE);
+            }
+
+            playVideo(cameraList.get(currentIndex));
+        }
+    }
+
+    private void openLocationGrid() {
+        if (cameraList == null || cameraList.isEmpty()) return;
+        Camera current = cameraList.get(currentIndex);
+        Intent intent = new Intent(this, LocationGridActivity.class);
+        intent.putExtra(LocationGridActivity.RAW_CAMERAS_LIST_DATA, (java.io.Serializable) cameraList);
+        intent.putExtra(LocationGridActivity.LOCATION_NAME, locationKey(current));
+        intent.putExtra(LocationGridActivity.FOCUS_CAMERA_ID, current.getId());
+        startActivity(intent);
+    }
+
+    private static String locationKey(Camera camera) {
+        String key = camera.getLocation();
+        return (key == null || key.isEmpty()) ? "" : key;
     }
 
     private void initPlayer() {
@@ -192,6 +238,15 @@ public class LiveActivity extends AppCompatActivity {
                 }
                 return true;
 
+            case KeyEvent.KEYCODE_MENU:
+            case KeyEvent.KEYCODE_INFO:
+            case KeyEvent.KEYCODE_GUIDE:
+                if (cameraList != null && cameraList.size() > 1) {
+                    openLocationGrid();
+                    return true;
+                }
+                break;
+
             case KeyEvent.KEYCODE_DPAD_CENTER:
             case KeyEvent.KEYCODE_ENTER:
                 if (needReconect) {
@@ -207,7 +262,6 @@ public class LiveActivity extends AppCompatActivity {
                 } else {
                     lastCenterPressTime = currentTime;
                     pendingSingleTap = true;
-                    pendingZoomWasEnabled = scaled;
 
                     new Handler(Looper.getMainLooper()).postDelayed(() -> {
                         if (pendingSingleTap) {
@@ -293,15 +347,6 @@ public class LiveActivity extends AppCompatActivity {
         if (libVLC != null) {
             libVLC.release();
         }
-    }
-
-    private int findCameraIndex(String cameraId) {
-        for (int i = 0; i < cameraList.size(); i++) {
-            if (String.valueOf(cameraList.get(i).getId()).equals(cameraId)) {
-                return i;
-            }
-        }
-        return 0;
     }
 
     private void togglePtzMode() {

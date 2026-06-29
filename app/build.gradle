@@ -2,16 +2,26 @@ plugins {
     alias(libs.plugins.android.application)
 }
 
-def apiHostProp = project.findProperty("API_HOST")
-def storeFileProp = project.findProperty("STORE_FILE")
-def storePasswordProp = project.findProperty("STORE_PASSWORD")
-def keyAliasProp = project.findProperty("KEY_ALIAS")
-def keyPasswordProp = project.findProperty("KEY_PASSWORD")
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(new FileInputStream(localPropertiesFile))
+}
 
-def versionNameProp = project.findProperty("VERSION_NAME") ?: "1.0"
-def versionCodeProp = (project.findProperty("VERSION_CODE") ?: "1").toInteger()
+def resolveProp = { String name ->
+    localProperties.getProperty(name) ?: project.findProperty(name)
+}
 
-if (!apiHostProp || !storeFileProp || !storePasswordProp || !keyAliasProp || !keyPasswordProp) {
+def eneverreHostProp = resolveProp("ENEVERRE_HOST")
+def storeFileProp = resolveProp("STORE_FILE")
+def storePasswordProp = resolveProp("STORE_PASSWORD")
+def keyAliasProp = resolveProp("KEY_ALIAS")
+def keyPasswordProp = resolveProp("KEY_PASSWORD")
+
+def versionNameProp = resolveProp("VERSION_NAME") ?: "1.0"
+def versionCodeProp = (resolveProp("VERSION_CODE") ?: "1").toInteger()
+
+if (!eneverreHostProp || !storeFileProp || !storePasswordProp || !keyAliasProp || !keyPasswordProp) {
     throw new GradleException("Missing signing configuration!")
 }
 
@@ -28,7 +38,7 @@ android {
         targetSdk 36
         versionCode versionCodeProp
         versionName versionNameProp
-        buildConfigField "String", "API_HOST", "\"${apiHostProp}\""
+        buildConfigField "String", "ENEVERRE_HOST", "\"${eneverreHostProp}\""
     }
 
     signingConfigs {

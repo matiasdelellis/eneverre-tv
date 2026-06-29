@@ -74,8 +74,8 @@ public class QrLoginActivity extends AppCompatActivity {
     private void updateQR(String user_code) {
         txtUserCode.setText(user_code);
 
-        Uri apiHost = Uri.parse(BuildConfig.API_HOST);
-        String qr_code = apiHost.getScheme() + "://" + apiHost.getAuthority()
+        Uri eneverreHost = Uri.parse(BuildConfig.ENEVERRE_HOST);
+        String qr_code = eneverreHost.getScheme() + "://" + eneverreHost.getAuthority()
                 + "/?usercode=" + user_code;
         try {
             BitMatrix matrix = new MultiFormatWriter().encode(

@@ -21,4 +21,13 @@
     <string name="update_action_cancel">Cancel</string>
     <string name="update_channel_name">App updates</string>
     <string name="update_channel_description">Downloads and installs new versions of Eneverre TV.</string>
+
+    <string name="locations_title">Locations</string>
+    <string name="location_unnamed">Unnamed</string>
+    <string name="view_grid_action">View all in grid</string>
+    <string name="no_locations_available">No locations available</string>
+    <string name="no_cameras_in_location">No cameras in this location</string>
+    <string name="view_grid_button">View grid</string>
+    <string name="retry">Retry</string>
+    <string name="sign_in_again">Sign in again</string>
 </resources>

@@ -4,7 +4,9 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.FrameLayout;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -28,6 +30,9 @@ public class LaunchActivity extends AppCompatActivity {
 
     private boolean ready = false;
     private boolean updateDialogShown = false;
+    private AlertDialog updateDialog = null;
+
+    private String cachedToken = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,9 +40,27 @@ public class LaunchActivity extends AppCompatActivity {
         splash.setKeepOnScreenCondition(() -> !ready);
 
         super.onCreate(savedInstanceState);
-        setContentView(new FrameLayout(this));
+        setContentView(R.layout.activity_launch);
 
-        ApiClient.init(BuildConfig.API_HOST);
+        Button retryButton = findViewById(R.id.launch_retry);
+        retryButton.setOnClickListener(v -> {
+            if (cachedToken != null) {
+                ready = false;
+                showError(false);
+                loadCameras(cachedToken);
+            } else {
+                goToLogin();
+            }
+        });
+        Button reloginButton = findViewById(R.id.launch_relogin);
+        reloginButton.setOnClickListener(v -> {
+            clearSession();
+            goToLogin();
+        });
+
+        showError(false);
+
+        ApiClient.init(BuildConfig.ENEVERRE_HOST + "api/");
 
         UpdateClient.checkOnce(this, new UpdateClient.Callback() {
             @Override
@@ -59,6 +82,7 @@ public class LaunchActivity extends AppCompatActivity {
         long nowSeconds = System.currentTimeMillis() / 1000L;
         if (token != null && expire_at > nowSeconds) {
             Log.d(TAG, "Already logged in. Searching for cameras");
+            cachedToken = token;
             loadCameras(token);
         } else {
             if (token != null) {
@@ -69,6 +93,12 @@ public class LaunchActivity extends AppCompatActivity {
             }
             goToLogin();
         }
+    }
+
+    private void showError(boolean show) {
+        findViewById(R.id.launch_message).setVisibility(show ? View.VISIBLE : View.GONE);
+        findViewById(R.id.launch_retry).setVisibility(show ? View.VISIBLE : View.GONE);
+        findViewById(R.id.launch_relogin).setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
     private void showUpdateDialog(UpdateManifest manifest, UpdateManifest.Build build) {
@@ -99,9 +129,21 @@ public class LaunchActivity extends AppCompatActivity {
             });
         }
 
-        AlertDialog dialog = builder.create();
-        dialog.setOnDismissListener(d -> updateDialogShown = false);
-        dialog.show();
+        updateDialog = builder.create();
+        updateDialog.setOnDismissListener(d -> {
+            updateDialogShown = false;
+            updateDialog = null;
+        });
+        updateDialog.show();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (updateDialog != null && updateDialog.isShowing()) {
+            updateDialog.dismiss();
+            updateDialog = null;
+        }
+        super.onDestroy();
     }
 
     private void clearSession() {
@@ -135,21 +177,32 @@ public class LaunchActivity extends AppCompatActivity {
             public void onFailure(Call<List<Camera>> call, Throwable throwable) {
                 Log.d(TAG, "loadCameras failure: " + throwable.getMessage());
                 ready = true;
-                Toast.makeText(LaunchActivity.this, R.string.error_connecting_to_the_api, Toast.LENGTH_LONG).show();
+                if (!isFinishing() && !isDestroyed()) {
+                    TextView message = findViewById(R.id.launch_message);
+                    if (message != null) {
+                        message.setText(getString(R.string.error_connecting_to_the_api)
+                                + "\n(" + throwable.getMessage() + ")");
+                    }
+                    showError(true);
+                }
             }
         });
     }
 
     private void goToLive(List<Camera> cameras) {
-        Intent intent = new Intent(LaunchActivity.this, LiveActivity.class);
-        intent.putExtra(LiveActivity.RAW_CAMERAS_LIST_DATA, (Serializable) cameras);
+        TvChannelManager.publish(LaunchActivity.this, cameras);
 
         String requestedCameraId = getIntent().getStringExtra("camera_id");
         if (requestedCameraId != null) {
+            Intent intent = new Intent(LaunchActivity.this, LiveActivity.class);
+            intent.putExtra(LiveActivity.RAW_CAMERAS_LIST_DATA, (Serializable) cameras);
             intent.putExtra(LiveActivity.CURRENT_CAMERA_ID, requestedCameraId);
+            startActivity(intent);
+        } else {
+            Intent intent = new Intent(LaunchActivity.this, LocationsActivity.class);
+            intent.putExtra(LocationsActivity.RAW_CAMERAS_LIST_DATA, (Serializable) cameras);
+            startActivity(intent);
         }
-
-        startActivity(intent);
         finish();
     }
 

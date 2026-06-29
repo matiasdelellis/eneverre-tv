@@ -34,6 +34,18 @@
         </activity>
 
         <activity
+            android:name=".LocationsActivity"
+            android:exported="true"
+            android:theme="@style/Theme.EneverreTV.Browse">
+        </activity>
+
+        <activity
+            android:name=".LocationGridActivity"
+            android:exported="false"
+            android:theme="@style/Theme.EneverreTV">
+        </activity>
+
+        <activity
             android:name=".QrLoginActivity"
             android:exported="true"
             android:theme="@style/Theme.EneverreTV">

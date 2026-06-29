@@ -22,4 +22,19 @@
         android:layout_gravity="center"
         android:text="@string/reconnect" />
 
+    <ImageButton
+        android:id="@+id/grid_button"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="top|end"
+        android:layout_marginEnd="24dp"
+        android:layout_marginTop="24dp"
+        android:background="@drawable/grid_button_background"
+        android:src="@drawable/ic_exit_fullscreen"
+        android:scaleType="centerInside"
+        android:contentDescription="@string/view_grid_button"
+        android:visibility="gone"
+        android:focusable="true"
+        android:nextFocusDown="@id/videoLayout" />
+
 </FrameLayout>

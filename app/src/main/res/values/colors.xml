@@ -7,4 +7,16 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <color name="brand_color">#FF1565C0</color>
+    <color name="background_default">#FF101418</color>
+    <color name="empty_message_color">#FFB0B7BE</color>
+    <color name="card_info_bg">#CC000000</color>
+    <color name="tile_background">#FF1A1F26</color>
+    <color name="tile_focus_stroke">#FF42A5F5</color>
+    <color name="tile_name_bg">#CC000000</color>
+    <color name="tile_name_text">#FFFFFFFF</color>
+    <color name="location_label_color">#FFECEFF1</color>
+    <color name="grid_button_bg">#80000000</color>
+    <color name="grid_button_ripple">#80FFFFFF</color>
 </resources>

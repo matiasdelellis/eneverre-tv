@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      API_HOST: ${{ secrets.API_HOST }}
+      ENEVERRE_HOST: ${{ secrets.ENEVERRE_HOST }}
       UPDATE_TOKEN: ${{ secrets.UPDATE_PUBLISH_TOKEN }}
       VERSION_NAME: ${{ inputs.version_name }}
       RELEASE_NOTES: ${{ inputs.release_notes }}
@@ -69,7 +69,7 @@ jobs:
       - name: Build Release APK
         run: |
           ./gradlew assembleRelease \
-            -PAPI_HOST=${API_HOST} \
+            -PENEVERRE_HOST=${ENEVERRE_HOST} \
             -PVERSION_NAME=${VERSION_NAME} \
             -PVERSION_CODE=${{ steps.version.outputs.version_code }} \
             -PSTORE_FILE=keystore.jks \
@@ -140,7 +140,7 @@ jobs:
               -F "releaseNotes=${RELEASE_NOTES}" \
               -F "mandatory=${MANDATORY}" \
               -F "finalize=${finalize}" \
-              -X POST "${API_HOST}admin/app/updates/tv")
+              -X POST "${ENEVERRE_HOST}admin/app/updates/tv")
 
             echo "HTTP ${HTTP_STATUS}:"
             cat "publish-${abi}.json"
