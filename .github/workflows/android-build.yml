@@ -140,7 +140,7 @@ jobs:
               -F "releaseNotes=${RELEASE_NOTES}" \
               -F "mandatory=${MANDATORY}" \
               -F "finalize=${finalize}" \
-              -X POST "${ENEVERRE_HOST}admin/app/updates/tv")
+              -X POST "${ENEVERRE_HOST}api/admin/app/updates/tv")
 
             echo "HTTP ${HTTP_STATUS}:"
             cat "publish-${abi}.json"
