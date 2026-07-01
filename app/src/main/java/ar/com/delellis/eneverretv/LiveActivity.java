@@ -15,16 +15,14 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import org.videolan.libvlc.LibVLC;
-import org.videolan.libvlc.Media;
-import org.videolan.libvlc.MediaPlayer;
-import org.videolan.libvlc.util.VLCVideoLayout;
+import com.alexvas.rtsp.codec.VideoDecodeThread;
+import com.alexvas.rtsp.widget.RtspStatusListener;
+import com.alexvas.rtsp.widget.RtspSurfaceView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,9 +35,7 @@ public class LiveActivity extends AppCompatActivity {
     public static final String RAW_CAMERAS_LIST_DATA = "RAW_CAMERA_LIST";
     public static final String CURRENT_CAMERA_ID = "CURRENT_CAMERA_ID";
 
-    private VLCVideoLayout videoLayout;
-    private LibVLC libVLC;
-    private MediaPlayer mediaPlayer;
+    private RtspSurfaceView videoLayout;
 
     private boolean scaled = false;
     private boolean ptzMode = false;
@@ -133,63 +129,102 @@ public class LiveActivity extends AppCompatActivity {
     }
 
     private void initPlayer() {
-        ArrayList<String> options = new ArrayList<>();
-
-        options.add("--quiet");
-        options.add("--network-caching=50");
-        options.add("--no-drop-late-frames");
-        options.add("--no-skip-frames");
-        options.add("--rtsp-tcp");
-
-        libVLC = new LibVLC(this, options);
-
-        mediaPlayer = new MediaPlayer(libVLC);
-        mediaPlayer.setEventListener(event -> {
-            if (event.type == MediaPlayer.Event.Buffering) {
-                if (event.getBuffering() == 100f) {
-                    findViewById(R.id.loading_progress).setVisibility(GONE);
-                } else {
-                    findViewById(R.id.loading_progress).setVisibility(VISIBLE);
-                }
-            } else if (event.type == MediaPlayer.Event.EncounteredError) {
-                Toast.makeText(this, R.string.error_playing, Toast.LENGTH_SHORT).show();
-                needReconect = true;
-
-                findViewById(R.id.loading_progress).setVisibility(GONE);
-                findViewById(R.id.reconnect_button).requestFocus();
-                findViewById(R.id.reconnect_button).setVisibility(VISIBLE);
+        videoLayout.setDebug(BuildConfig.DEBUG);
+        // The emulator's goldfish hardware H264 decoder accepts input but never emits frames for
+        // High-profile streams (black screen), and the library only falls back to software when the
+        // hardware decoder throws. Force software decoding on emulators; real devices use hardware.
+        if (DeviceUtils.isEmulator()) {
+            videoLayout.setVideoDecoderType(VideoDecodeThread.DecoderType.SOFTWARE);
+        }
+        videoLayout.setStatusListener(new RtspStatusListener() {
+            @Override
+            public void onRtspStatusConnecting() {
+                findViewById(R.id.loading_progress).setVisibility(VISIBLE);
             }
-        });
 
-        mediaPlayer.attachViews(videoLayout, null, false, false);
+            @Override
+            public void onRtspStatusConnected() { }
+
+            @Override
+            public void onRtspStatusDisconnecting() { }
+
+            @Override
+            public void onRtspStatusDisconnected() { }
+
+            @Override
+            public void onRtspStatusFailedUnauthorized() {
+                onPlaybackError();
+            }
+
+            @Override
+            public void onRtspStatusFailed(String message) {
+                onPlaybackError();
+            }
+
+            @Override
+            public void onRtspFirstFrameRendered() {
+                // Invoked on the decoder thread.
+                runOnUiThread(() -> findViewById(R.id.loading_progress).setVisibility(GONE));
+            }
+
+            @Override
+            public void onRtspFrameSizeChanged(int width, int height) { }
+        });
+    }
+
+    private void onPlaybackError() {
+        Toast.makeText(this, R.string.error_playing, Toast.LENGTH_SHORT).show();
+        needReconect = true;
+
+        findViewById(R.id.loading_progress).setVisibility(GONE);
+        findViewById(R.id.reconnect_button).requestFocus();
+        findViewById(R.id.reconnect_button).setVisibility(VISIBLE);
     }
 
     private void playVideo(Camera camera) {
-        if (mediaPlayer.isPlaying()) {
-            mediaPlayer.stop();
-
-            SurfaceView surfaceView = findViewById(org.videolan.R.id.surface_video);
-            if (surfaceView != null) {
-                SurfaceHolder holder = surfaceView.getHolder();
-                if (holder != null) {
-                    Canvas canvas = holder.lockCanvas();
-                    if (canvas != null) {
-                        canvas.drawColor(Color.BLACK);
-                    }
-                    holder.unlockCanvasAndPost(canvas);
-                }
-            }
+        if (videoLayout.isStarted()) {
+            videoLayout.stop();
+            clearSurface();
         }
 
+        findViewById(R.id.loading_progress).setVisibility(VISIBLE);
         Toast.makeText(this, camera.getName(), Toast.LENGTH_SHORT).show();
 
-        Media media = new Media(libVLC, Uri.parse(camera.getLive()));
-        media.setHWDecoderEnabled(true, false);
+        Uri raw = Uri.parse(camera.getLive());
+        String username = null;
+        String password = null;
+        Uri uri = raw;
 
-        mediaPlayer.setMedia(media);
-        media.release();
+        String userInfo = raw.getUserInfo();
+        if (userInfo != null && !userInfo.isEmpty()) {
+            int sep = userInfo.indexOf(':');
+            if (sep >= 0) {
+                username = userInfo.substring(0, sep);
+                password = userInfo.substring(sep + 1);
+            } else {
+                username = userInfo;
+            }
+            String authority = raw.getHost();
+            if (raw.getPort() != -1) authority += ":" + raw.getPort();
+            uri = raw.buildUpon().encodedAuthority(authority).build();
+        }
 
-        mediaPlayer.play();
+        videoLayout.init(uri, username, password, "EneverreTV", null);
+        videoLayout.start(true, true, false);
+    }
+
+    private void clearSurface() {
+        SurfaceHolder holder = videoLayout.getHolder();
+        if (holder == null) return;
+        try {
+            Canvas canvas = holder.lockCanvas();
+            if (canvas != null) {
+                canvas.drawColor(Color.BLACK);
+                holder.unlockCanvasAndPost(canvas);
+            }
+        } catch (Exception ignored) {
+            // Surface may be momentarily owned by the decoder; clearing is best-effort.
+        }
     }
 
     @Override
@@ -338,14 +373,8 @@ public class LiveActivity extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
 
-        if (mediaPlayer != null) {
-            mediaPlayer.stop();
-            mediaPlayer.detachViews();
-            mediaPlayer.release();
-        }
-
-        if (libVLC != null) {
-            libVLC.release();
+        if (videoLayout != null && videoLayout.isStarted()) {
+            videoLayout.stop();
         }
     }
 

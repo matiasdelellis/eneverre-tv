@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <org.videolan.libvlc.util.VLCVideoLayout
+    <com.alexvas.rtsp.widget.RtspSurfaceView
         android:id="@+id/videoLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />

@@ -16,16 +16,16 @@
 # debugging stack traces.
 #-keepattributes SourceFile,LineNumberTable
 
-# Workaround for R8 IndexOutOfBoundsException with AGP 9.x + libvlc/okhttp5
-# Disable only the short-method inlining pass (the buggy one), keep the rest
--optimizations !code/simplification/arithmetic,!field/*,!class/merging/*,!method/inlining/short
+# Workaround for R8 9.1.x IndexOutOfBoundsException crash in the IR optimizer
+# (ir.optimize pass). R8 ignores most fine-grained -optimizations filters, so we
+# disable the optimization stage entirely; shrinking and obfuscation still run.
+-dontoptimize
 
 # Keep EneverreTv
 -keep class ar.com.delellis.eneverretv.** { *; }
 
-# VLC
--keep class org.videolan.** { *; }
--keep class org.videolan.libvlc.** { *; }
+# rtsp-client-android
+-keep class com.alexvas.rtsp.** { *; }
 
 # Evita problemas con reflection
 -keepattributes *Annotation*
@@ -39,7 +39,7 @@
 -keep class kotlin.Metadata { *; }
 
 # Evitar warnings molestos
--dontwarn org.videolan.**
+-dontwarn com.alexvas.rtsp.**
 -dontwarn org.bouncycastle.**
 -dontwarn org.conscrypt.**
 -dontwarn org.openjsse.**

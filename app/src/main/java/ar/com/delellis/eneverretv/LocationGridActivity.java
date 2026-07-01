@@ -14,10 +14,9 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import org.videolan.libvlc.LibVLC;
-import org.videolan.libvlc.Media;
-import org.videolan.libvlc.MediaPlayer;
-import org.videolan.libvlc.util.VLCVideoLayout;
+import com.alexvas.rtsp.codec.VideoDecodeThread;
+import com.alexvas.rtsp.widget.RtspStatusListener;
+import com.alexvas.rtsp.widget.RtspSurfaceView;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -32,13 +31,14 @@ public class LocationGridActivity extends AppCompatActivity {
     public static final String LOCATION_NAME = "LOCATION_NAME";
     public static final String FOCUS_CAMERA_ID = "FOCUS_CAMERA_ID";
 
+    private static final int MAX_TILES = 4;
+
     private GridLayout gridLayout;
     private TextView locationLabel;
     private View focusedTile;
 
     private List<Camera> cameras = new ArrayList<>();
-    private List<MediaPlayer> players = new ArrayList<>();
-    private List<LibVLC> libvlcs = new ArrayList<>();
+    private List<RtspSurfaceView> players = new ArrayList<>();
     private List<View> tiles = new ArrayList<>();
 
     private int focusedIndex = 0;
@@ -68,7 +68,33 @@ public class LocationGridActivity extends AppCompatActivity {
             return;
         }
 
+        // Limit the grid to a 2x2 window (up to 4 simultaneous streams) to stay within the
+        // hardware decoder budget of typical Android TV devices. The window always includes
+        // the focused camera; the full list is still passed through to fullscreen playback.
+        cameras = selectGridWindow(cameras);
+
         buildGrid();
+    }
+
+    private List<Camera> selectGridWindow(List<Camera> all) {
+        if (all.size() <= MAX_TILES) return all;
+
+        String focusId = getIntent().getStringExtra(FOCUS_CAMERA_ID);
+        int focusIndex = 0;
+        if (focusId != null) {
+            for (int i = 0; i < all.size(); i++) {
+                if (String.valueOf(all.get(i).getId()).equals(focusId)) {
+                    focusIndex = i;
+                    break;
+                }
+            }
+        }
+
+        int start = focusIndex - MAX_TILES / 2;
+        if (start < 0) start = 0;
+        if (start > all.size() - MAX_TILES) start = all.size() - MAX_TILES;
+
+        return new ArrayList<>(all.subList(start, start + MAX_TILES));
     }
 
     private void buildGrid() {
@@ -122,12 +148,7 @@ public class LocationGridActivity extends AppCompatActivity {
     }
 
     private int computeColumns(int n) {
-        if (n <= 1) return 1;
-        if (n == 2) return 2;
-        if (n <= 4) return 2;
-        if (n <= 6) return 3;
-        if (n <= 9) return 3;
-        return 3;
+        return n <= 1 ? 1 : 2;
     }
 
     private View createTile(Camera camera, int index) {
@@ -138,40 +159,84 @@ public class LocationGridActivity extends AppCompatActivity {
         nameView.setText(camera.getName());
 
         FrameLayout videoContainer = tile.findViewById(R.id.tile_video_container);
-        VLCVideoLayout videoLayout = new VLCVideoLayout(this);
-        videoContainer.addView(videoLayout, new FrameLayout.LayoutParams(
+        RtspSurfaceView surfaceView = new RtspSurfaceView(this);
+        videoContainer.addView(surfaceView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
 
-        ArrayList<String> options = new ArrayList<>();
-        options.add("--quiet");
-        options.add("--network-caching=150");
-        options.add("--no-drop-late-frames");
-        options.add("--no-skip-frames");
-        options.add("--rtsp-tcp");
+        surfaceView.setDebug(BuildConfig.DEBUG);
+        // See LiveActivity: the emulator's hardware decoder never renders High-profile H264.
+        if (DeviceUtils.isEmulator()) {
+            surfaceView.setVideoDecoderType(VideoDecodeThread.DecoderType.SOFTWARE);
+        }
 
-        LibVLC libVLC = new LibVLC(this, options);
-        MediaPlayer mediaPlayer = new MediaPlayer(libVLC);
-        mediaPlayer.setEventListener(event -> {
-            if (event.type == MediaPlayer.Event.Buffering) {
-                View progress = tile.findViewById(R.id.tile_progress);
-                if (progress != null) {
-                    progress.setVisibility(event.getBuffering() == 100f ? View.GONE : View.VISIBLE);
-                }
+        surfaceView.setStatusListener(new RtspStatusListener() {
+            @Override
+            public void onRtspStatusConnecting() {
+                setTileProgress(tile, true);
             }
+
+            @Override
+            public void onRtspStatusConnected() { }
+
+            @Override
+            public void onRtspStatusDisconnecting() { }
+
+            @Override
+            public void onRtspStatusDisconnected() { }
+
+            @Override
+            public void onRtspStatusFailedUnauthorized() {
+                setTileProgress(tile, false);
+            }
+
+            @Override
+            public void onRtspStatusFailed(String message) {
+                setTileProgress(tile, false);
+            }
+
+            @Override
+            public void onRtspFirstFrameRendered() {
+                // Invoked on the decoder thread.
+                runOnUiThread(() -> setTileProgress(tile, false));
+            }
+
+            @Override
+            public void onRtspFrameSizeChanged(int width, int height) { }
         });
-        mediaPlayer.attachViews(videoLayout, null, false, false);
 
-        Media media = new Media(libVLC, Uri.parse(camera.getLive()));
-        media.setHWDecoderEnabled(true, false);
-        mediaPlayer.setMedia(media);
-        media.release();
-        mediaPlayer.play();
+        Uri raw = Uri.parse(camera.getLive());
+        String username = null;
+        String password = null;
+        Uri uri = raw;
 
-        libvlcs.add(libVLC);
-        players.add(mediaPlayer);
+        String userInfo = raw.getUserInfo();
+        if (userInfo != null && !userInfo.isEmpty()) {
+            int sep = userInfo.indexOf(':');
+            if (sep >= 0) {
+                username = userInfo.substring(0, sep);
+                password = userInfo.substring(sep + 1);
+            } else {
+                username = userInfo;
+            }
+            String authority = raw.getHost();
+            if (raw.getPort() != -1) authority += ":" + raw.getPort();
+            uri = raw.buildUpon().encodedAuthority(authority).build();
+        }
+
+        surfaceView.init(uri, username, password, "EneverreTV", null);
+        surfaceView.start(true, false, false);
+
+        players.add(surfaceView);
 
         return tile;
+    }
+
+    private void setTileProgress(View tile, boolean visible) {
+        View progress = tile.findViewById(R.id.tile_progress);
+        if (progress != null) {
+            progress.setVisibility(visible ? View.VISIBLE : View.GONE);
+        }
     }
 
     @Override
@@ -216,23 +281,13 @@ public class LocationGridActivity extends AppCompatActivity {
     }
 
     private void releasePlayers() {
-        for (MediaPlayer mp : players) {
+        for (RtspSurfaceView sv : players) {
             try {
-                mp.stop();
-                mp.detachViews();
-                mp.release();
+                if (sv.isStarted()) sv.stop();
             } catch (Exception e) {
-                Log.w(TAG, "Error releasing MediaPlayer: " + e.getMessage());
-            }
-        }
-        for (LibVLC lib : libvlcs) {
-            try {
-                lib.release();
-            } catch (Exception e) {
-                Log.w(TAG, "Error releasing LibVLC: " + e.getMessage());
+                Log.w(TAG, "Error stopping RtspSurfaceView: " + e.getMessage());
             }
         }
         players.clear();
-        libvlcs.clear();
     }
 }
