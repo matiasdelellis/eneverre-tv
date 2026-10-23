@@ -102,4 +102,6 @@ dependencies {
     implementation libs.material
     implementation libs.leanback
     implementation libs.work.manager
+
+    testImplementation 'junit:junit:4.13.2'
 }

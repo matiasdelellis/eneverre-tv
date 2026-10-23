@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug builds are also used for LAN smoke tests against a plain-HTTP
+  Eneverre instance. Production/release builds keep the platform default
+  (cleartext blocked) and must use HTTPS.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:usesCleartextTraffic="true" />
+</manifest>
