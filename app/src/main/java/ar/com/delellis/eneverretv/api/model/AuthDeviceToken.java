@@ -16,7 +16,15 @@ public class AuthDeviceToken implements Serializable {
 
     @Expose
     @SerializedName("expires_at")
-    private int expires_at;
+    private long expiresAt;
+
+    @Expose
+    @SerializedName("refresh_token")
+    private String refreshToken;
+
+    @Expose
+    @SerializedName("refresh_expires_at")
+    private long refreshExpiresAt;
 
     public String getToken() {
         return token;
@@ -26,7 +34,15 @@ public class AuthDeviceToken implements Serializable {
         return status;
     }
 
-    public int getExpiresAt() {
-        return expires_at;
+    public long getExpiresAt() {
+        return expiresAt;
+    }
+
+    public String getRefreshToken() {
+        return refreshToken;
+    }
+
+    public long getRefreshExpiresAt() {
+        return refreshExpiresAt;
     }
 }

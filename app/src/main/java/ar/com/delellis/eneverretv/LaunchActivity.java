@@ -1,7 +1,6 @@
 package ar.com.delellis.eneverretv;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -17,12 +16,11 @@ import java.io.Serializable;
 import java.util.List;
 
 import ar.com.delellis.eneverretv.api.ApiClient;
+import ar.com.delellis.eneverretv.api.CameraRepository;
+import ar.com.delellis.eneverretv.api.SessionManager;
 import ar.com.delellis.eneverretv.api.model.Camera;
 import ar.com.delellis.eneverretv.api.model.UpdateManifest;
 import ar.com.delellis.eneverretv.update.UpdateClient;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 
 public class LaunchActivity extends AppCompatActivity {
@@ -31,8 +29,6 @@ public class LaunchActivity extends AppCompatActivity {
     private boolean ready = false;
     private boolean updateDialogShown = false;
     private AlertDialog updateDialog = null;
-
-    private String cachedToken = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,17 +40,15 @@ public class LaunchActivity extends AppCompatActivity {
 
         Button retryButton = findViewById(R.id.launch_retry);
         retryButton.setOnClickListener(v -> {
-            if (cachedToken != null) {
-                ready = false;
-                showError(false);
-                loadCameras(cachedToken);
+            if (SessionManager.hasStoredSession(this)) {
+                loadCameras();
             } else {
                 goToLogin();
             }
         });
         Button reloginButton = findViewById(R.id.launch_relogin);
         reloginButton.setOnClickListener(v -> {
-            clearSession();
+            signOut();
             goToLogin();
         });
 
@@ -75,22 +69,12 @@ public class LaunchActivity extends AppCompatActivity {
             }
         });
 
-        SharedPreferences prefs = getSharedPreferences("auth", MODE_PRIVATE);
-        String token = prefs.getString("token", null);
-        int expire_at = prefs.getInt("expire_at", -1);
-
-        long nowSeconds = System.currentTimeMillis() / 1000L;
-        if (token != null && expire_at > nowSeconds) {
-            Log.d(TAG, "Already logged in. Searching for cameras");
-            cachedToken = token;
-            loadCameras(token);
+        if (SessionManager.hasStoredSession(this)) {
+            Log.d(TAG, "Stored session found. Loading cameras.");
+            loadCameras();
         } else {
-            if (token != null) {
-                Log.d(TAG, "Token expired (expire_at=" + expire_at + ", now=" + nowSeconds + "). Clearing session.");
-                clearSession();
-            } else {
-                Log.d(TAG, "Without logging in. Going to the login screen.");
-            }
+            Log.d(TAG, "No usable session. Going to the login screen.");
+            ready = true;
             goToLogin();
         }
     }
@@ -146,45 +130,48 @@ public class LaunchActivity extends AppCompatActivity {
         super.onDestroy();
     }
 
-    private void clearSession() {
-        getSharedPreferences("auth", MODE_PRIVATE).edit().clear().apply();
+    private void signOut() {
+        SessionManager.clear(this);
+        CameraRepository.clear();
     }
 
-    private void loadCameras(String token) {
-        Call<List<Camera>> camerasCall = ApiClient.get().api().cameras("Bearer " + token);
-        camerasCall.enqueue(new Callback<List<Camera>>() {
+    private void loadCameras() {
+        ready = false;
+        showError(false);
+
+        CameraRepository.refresh(this, new CameraRepository.Callback() {
             @Override
-            public void onResponse(Call<List<Camera>> call, Response<List<Camera>> response) {
-                if (response.code() == 401) {
-                    Log.w(TAG, "Token rejected (HTTP 401). Clearing session and going to login.");
-                    ready = true;
-                    clearSession();
+            public void onCameras(List<Camera> cameras) {
+                ready = true;
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                Log.d(TAG, "We found the " + cameras.size() + " cameras. Going to view them.");
+                goToLive(cameras);
+            }
+
+            @Override
+            public void onError(int httpCode, String message) {
+                ready = true;
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+
+                if (httpCode == 401) {
+                    Log.w(TAG, "Session rejected. Clearing it and going to login.");
+                    signOut();
                     goToLogin();
                     return;
                 }
-                if (!response.isSuccessful() || response.body() == null) {
-                    Log.e(TAG, "loadCameras unsuccessful: HTTP " + response.code());
-                    ready = true;
-                    Toast.makeText(LaunchActivity.this, R.string.error_connecting_to_the_api, Toast.LENGTH_LONG).show();
-                    return;
+
+                Log.e(TAG, "loadCameras failed (HTTP " + httpCode + "): " + message);
+                Toast.makeText(LaunchActivity.this, R.string.error_connecting_to_the_api, Toast.LENGTH_LONG).show();
+                TextView messageView = findViewById(R.id.launch_message);
+                if (messageView != null) {
+                    String detail = message == null || message.isEmpty() ? "" : "\n(" + message + ")";
+                    messageView.setText(getString(R.string.error_connecting_to_the_api) + detail);
                 }
-                List<Camera> cameras = response.body();
-                Log.d(TAG, "We found the " + cameras.size() + " cameras. Going to view them.");
-                ready = true;
-                goToLive(cameras);
-            }
-            @Override
-            public void onFailure(Call<List<Camera>> call, Throwable throwable) {
-                Log.d(TAG, "loadCameras failure: " + throwable.getMessage());
-                ready = true;
-                if (!isFinishing() && !isDestroyed()) {
-                    TextView message = findViewById(R.id.launch_message);
-                    if (message != null) {
-                        message.setText(getString(R.string.error_connecting_to_the_api)
-                                + "\n(" + throwable.getMessage() + ")");
-                    }
-                    showError(true);
-                }
+                showError(true);
             }
         });
     }
@@ -207,6 +194,7 @@ public class LaunchActivity extends AppCompatActivity {
     }
 
     private void goToLogin() {
+        ready = true;
         Intent intent = new Intent(LaunchActivity.this, QrLoginActivity.class);
         startActivity(intent);
         finish();

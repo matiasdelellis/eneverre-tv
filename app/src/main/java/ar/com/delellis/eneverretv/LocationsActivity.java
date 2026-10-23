@@ -29,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import ar.com.delellis.eneverretv.api.CameraRepository;
 import ar.com.delellis.eneverretv.api.model.Camera;
 
 public class LocationsActivity extends FragmentActivity {
@@ -42,10 +43,12 @@ public class LocationsActivity extends FragmentActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_locations);
 
-        cameraList = (List<Camera>) getIntent().getSerializableExtra(RAW_CAMERAS_LIST_DATA);
-        if (cameraList == null) {
-            cameraList = new ArrayList<>();
+        List<Camera> intentList = (List<Camera>) getIntent().getSerializableExtra(RAW_CAMERAS_LIST_DATA);
+        if (intentList == null) {
+            intentList = new ArrayList<>();
         }
+        CameraRepository.seedIfEmpty(intentList);
+        cameraList = CameraRepository.isEmpty() ? intentList : CameraRepository.getCameras();
 
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
@@ -94,7 +97,10 @@ public class LocationsActivity extends FragmentActivity {
                 HeaderItem header = new HeaderItem(headerId++, locationName);
                 ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(cardPresenter);
 
-                listRowAdapter.add(new ViewGridAction(locationName, cameras));
+                String rawLocation = cameras.isEmpty() || cameras.get(0).getLocation() == null
+                        ? ""
+                        : cameras.get(0).getLocation();
+                listRowAdapter.add(new ViewGridAction(locationName, rawLocation, cameras));
                 for (Camera cam : cameras) {
                     listRowAdapter.add(cam);
                 }
@@ -134,6 +140,7 @@ public class LocationsActivity extends FragmentActivity {
             Intent intent = new Intent(activity, LocationGridActivity.class);
             intent.putExtra(LocationGridActivity.RAW_CAMERAS_LIST_DATA, (Serializable) action.cameras);
             intent.putExtra(LocationGridActivity.LOCATION_NAME, action.locationName);
+            intent.putExtra(LocationGridActivity.LOCATION_KEY, action.locationKey);
             startActivity(intent);
         }
 
@@ -157,10 +164,12 @@ public class LocationsActivity extends FragmentActivity {
 
     public static class ViewGridAction {
         public final String locationName;
+        public final String locationKey;
         public final List<Camera> cameras;
 
-        public ViewGridAction(String locationName, List<Camera> cameras) {
+        public ViewGridAction(String locationName, String locationKey, List<Camera> cameras) {
             this.locationName = locationName;
+            this.locationKey = locationKey;
             this.cameras = cameras;
         }
     }

@@ -15,6 +15,18 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center" />
 
+    <TextView
+        android:id="@+id/live_message"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginBottom="72dp"
+        android:gravity="center"
+        android:maxWidth="480dp"
+        android:textColor="@color/location_label_color"
+        android:textSize="20sp"
+        android:visibility="gone" />
+
     <Button
         android:id="@+id/reconnect_button"
         android:layout_width="wrap_content"

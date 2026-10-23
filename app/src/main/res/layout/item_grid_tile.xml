@@ -15,6 +15,16 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center" />
 
+    <TextView
+        android:id="@+id/tile_message"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:textColor="@color/location_label_color"
+        android:textSize="16sp"
+        android:visibility="gone" />
+
     <View
         android:id="@+id/focus_indicator"
         android:layout_width="match_parent"

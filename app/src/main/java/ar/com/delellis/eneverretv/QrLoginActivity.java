@@ -1,7 +1,6 @@
 package ar.com.delellis.eneverretv;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.net.Uri;
@@ -19,6 +18,7 @@ import com.google.zxing.common.BitMatrix;
 
 import ar.com.delellis.eneverretv.api.ApiClient;
 import ar.com.delellis.eneverretv.api.PollingManager;
+import ar.com.delellis.eneverretv.api.SessionManager;
 import ar.com.delellis.eneverretv.api.model.AuthDevice;
 import ar.com.delellis.eneverretv.api.model.AuthDeviceToken;
 import retrofit2.Call;
@@ -40,6 +40,8 @@ public class QrLoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.qr_login);
+
+        ApiClient.init(BuildConfig.ENEVERRE_HOST + "api/");
 
         qrImage = findViewById(R.id.qrImage);
         txtUserCode = findViewById(R.id.txtUserCode);
@@ -116,7 +118,7 @@ public class QrLoginActivity extends AppCompatActivity {
     }
 
     private void loginVerify(String device_code, PollingManager.Callback pollingCallback) {
-        Log.d(TAG, "Checking code status: " + device_code);
+        Log.d(TAG, "Checking code status");
 
         Call<AuthDeviceToken> call = ApiClient.get().api().authDeviceToken(device_code);
         call.enqueue(new Callback<AuthDeviceToken>() {
@@ -126,6 +128,22 @@ public class QrLoginActivity extends AppCompatActivity {
 
                 if (!response.isSuccessful() || response.body() == null) {
                     Log.w(TAG, "loginVerify unsuccessful or empty body. code=" + response.code() + ", body=" + (response.body() != null));
+                    if (response.code() == 404) {
+                        // The device code vanished server-side (expired row
+                        // cleanup, server restart with a fresh DB, ...): a new
+                        // code is the only way forward.
+                        Log.d(TAG, "Device code unknown. Requesting a new one.");
+                        pollingManager.stop();
+                        requestCode();
+                        return;
+                    }
+                    if (response.code() == 403) {
+                        Log.w(TAG, "Device login refused (HTTP 403). Stopping polling.");
+                        pollingManager.stop();
+                        Toast.makeText(QrLoginActivity.this,
+                                R.string.error_connecting_to_the_api, Toast.LENGTH_LONG).show();
+                        return;
+                    }
                     pollingCallback.onError();
                     return;
                 }
@@ -136,11 +154,7 @@ public class QrLoginActivity extends AppCompatActivity {
                 Log.d(TAG, "loginVerify status: " + status);
                 if ("approved".equals(status)) {
                     Log.d(TAG, "loginVerify approved. token=" + (authDeviceToken.getToken() != null ? "present" : "null") + ", expire_at=" + authDeviceToken.getExpiresAt());
-                    SharedPreferences prefs = getSharedPreferences("auth", MODE_PRIVATE);
-                    prefs.edit()
-                            .putString("token", authDeviceToken.getToken())
-                            .putInt("expire_at", authDeviceToken.getExpiresAt())
-                            .apply();
+                    SessionManager.save(QrLoginActivity.this, authDeviceToken);
 
                     onLoginSuccess();
                     pollingCallback.onSuccess(false);
@@ -157,7 +171,7 @@ public class QrLoginActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<AuthDeviceToken> call, Throwable throwable) {
-                Log.e(TAG, "Polling error for device_code=" + device_code + ": " + throwable.getMessage(), throwable);
+                Log.e(TAG, "Polling error: " + throwable.getMessage(), throwable);
                 pollingCallback.onError();
             }
         });

@@ -4,6 +4,13 @@
     <string name="reconnect">Reconnect</string>
     <string name="error_connecting_to_the_api">Error connecting to the API</string>
     <string name="error_playing">Error playing</string>
+    <string name="camera_unavailable">Live stream unavailable</string>
+    <string name="camera_paused">Camera is paused</string>
+    <string name="camera_off_schedule">Camera is off its recording schedule</string>
+    <string name="camera_removed">This camera is no longer available</string>
+    <string name="session_expired">Session expired. Sign in again.</string>
+    <string name="ptz_move_failed">Could not move the camera</string>
+    <string name="no_signal">No signal</string>
     <string name="the_camera_does_not_support_ptz">The camera does not support PTZ</string>
     <string name="move_the_camera_with_the_pad">Move the camera with the Pad</string>
     <string name="exiting_ptz_mode">Exiting PTZ mode</string>
