@@ -8,11 +8,16 @@ Due to the QR-based authentication flow, each implementation of eneverre-api req
 * Login with QR and user code.
 * View live view from all cameras.
 * Zoom and pan live view.
+* Pan/tilt/zoom control from the D-pad (double-tap OK to enter PTZ mode).
+* 2×2 grid for a location, with one shared camera-list refresh on token expiry.
+* Renewable TV sessions: the server's refresh token avoids re-pairing when the access token expires.
 * Auto-update: on cold start the app fetches the multi-ABI manifest, picks the build that matches the device, shows a dialog, downloads, verifies the SHA-256 and installs.
 
 ## 🚧 Roadmap
-* Ptz
 * Playback
+
+### Live stream credentials 🔐
+`GET /api/cameras` returns the RTSP URL as `rtsp://<host>:<port>/<camera-id>/<exp>.<sig>`. The last path segment is a per-camera signed bearer token valid for 6 hours; there is no RTSP username/password and no `Authorization` header. The app treats the URL as opaque, re-fetches the camera list when a token is close to expiry (or after a `401`), collapses concurrent refreshes into one request, and never logs the token (the RTSP library's debug logging is disabled because it prints the full request line).
 
 ## Build Eneverre TV APK 🛠️
 To generate your own APK, you must fork this repository and configure your environment.
