@@ -33,9 +33,10 @@ public class TvChannelManager {
         for (Map.Entry<String, List<Camera>> entry : grouped.entrySet()) {
             String location = entry.getKey();
             List<Camera> cams = entry.getValue();
-            long channelId = existing.containsKey(location)
-                    ? existing.get(location)
-                    : createChannel(context, location);
+            boolean isNew = !existing.containsKey(location);
+            long channelId = isNew
+                    ? createChannel(context, location)
+                    : existing.get(location);
             if (channelId == -1) continue;
 
             next.put(location, channelId);
@@ -43,7 +44,12 @@ public class TvChannelManager {
             for (Camera cam : cams) {
                 addProgram(context, channelId, cam);
             }
-            requestBrowsable(context, channelId);
+            if (isNew) {
+                // Only ask the system to surface the channel when it is first
+                // created. Re-requesting on every cold start made the TV show
+                // the "add channel" prompt repeatedly.
+                requestBrowsable(context, channelId);
+            }
         }
 
         for (Map.Entry<String, Long> stale : existing.entrySet()) {
@@ -92,7 +98,10 @@ public class TvChannelManager {
     }
 
     private static long createChannel(Context context, String locationName) {
-        Uri appLink = Uri.parse("eneverre://home");
+        // An explicit intent URI resolves to LaunchActivity even though the
+        // manifest has no filter for a bare eneverre://home link.
+        Intent appLinkIntent = new Intent(context, LaunchActivity.class);
+        Uri appLink = Uri.parse(appLinkIntent.toUri(Intent.URI_INTENT_SCHEME));
 
         PreviewChannel channel = new PreviewChannel.Builder()
                 .setDisplayName(locationName)

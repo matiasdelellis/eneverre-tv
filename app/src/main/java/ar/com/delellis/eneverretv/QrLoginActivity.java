@@ -76,9 +76,14 @@ public class QrLoginActivity extends AppCompatActivity {
     private void updateQR(String user_code) {
         txtUserCode.setText(user_code);
 
-        Uri eneverreHost = Uri.parse(BuildConfig.ENEVERRE_HOST);
-        String qr_code = eneverreHost.getScheme() + "://" + eneverreHost.getAuthority()
-                + "/?usercode=" + user_code;
+        // Keep the full configured base URL (including any reverse-proxy
+        // subpath); rebuilding it from scheme+authority dropped "/nvr/" and
+        // sent the phone to the wrong page.
+        String base = BuildConfig.ENEVERRE_HOST;
+        if (!base.endsWith("/")) {
+            base += "/";
+        }
+        String qr_code = base + "?usercode=" + Uri.encode(user_code);
         try {
             BitMatrix matrix = new MultiFormatWriter().encode(
                     qr_code,
