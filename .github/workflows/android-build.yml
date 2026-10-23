@@ -66,9 +66,9 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/keystore.jks
 
-      - name: Build Release APK
+      - name: Test and Build Release APK
         run: |
-          ./gradlew assembleRelease \
+          ./gradlew testDebugUnitTest assembleRelease \
             -PENEVERRE_HOST=${ENEVERRE_HOST} \
             -PVERSION_NAME=${VERSION_NAME} \
             -PVERSION_CODE=${{ steps.version.outputs.version_code }} \
