@@ -6,10 +6,14 @@ Due to the QR-based authentication flow, each implementation of eneverre-api req
 
 ## ✨Features
 * Login with QR and user code.
-* View live view from all cameras.
+* Browse locations and cameras with current camera snapshots on the cards (when the server advertises the thumbnail capability).
+* View live view from all cameras, with automatic retry after a dropped stream.
 * Zoom and pan live view.
 * Pan/tilt/zoom control from the D-pad (double-tap OK to enter PTZ mode).
-* 2×2 grid for a location, with one shared camera-list refresh on token expiry.
+* Switch cameras with the remote's channel up/down keys.
+* 2×2 grid for a location, with one shared camera-list refresh on token expiry and a per-cell “No signal” state.
+* Keeps the screen awake while watching live or the grid.
+* English and Spanish UI.
 * Renewable TV sessions: the server's refresh token avoids re-pairing when the access token expires.
 * Auto-update: on cold start the app fetches the multi-ABI manifest, picks the build that matches the device, shows a dialog, downloads, verifies the SHA-256 and installs.
 
