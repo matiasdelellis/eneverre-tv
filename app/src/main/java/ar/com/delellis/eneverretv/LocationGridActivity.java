@@ -280,7 +280,14 @@ public class LocationGridActivity extends AppCompatActivity {
             public void onRtspStatusDisconnecting() { }
 
             @Override
-            public void onRtspStatusDisconnected() { }
+            public void onRtspStatusDisconnected() {
+                runOnUiThread(() -> {
+                    if (generation != gridGeneration) {
+                        return;
+                    }
+                    onCellError(tile, false);
+                });
+            }
 
             @Override
             public void onRtspStatusFailedUnauthorized() {

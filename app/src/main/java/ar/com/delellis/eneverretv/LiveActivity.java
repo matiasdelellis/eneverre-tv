@@ -73,6 +73,23 @@ public class LiveActivity extends AppCompatActivity {
     private boolean wasStopped = false;
     private boolean navigatingToLogin = false;
 
+    // A stream that drops is retried automatically a couple of times before
+    // the Reconnect button is shown. This keeps an unattended TV watching
+    // after a camera reboot or a brief network blip.
+    private static final long AUTO_RETRY_DELAY_MS = 4000;
+    private static final int AUTO_RETRY_LIMIT = 2;
+
+    private int autoRetryCount = 0;
+    private boolean failureReported = false;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final Runnable autoRetryRunnable = () -> {
+        if (navigatingToLogin || isFinishing() || isDestroyed()) {
+            return;
+        }
+        Log.d(TAG, "Auto-retrying the stream (" + autoRetryCount + "/" + AUTO_RETRY_LIMIT + ")");
+        attemptReconnect();
+    };
+
     // Incremented on every start/stop so callbacks from a stream that was
     // already torn down (camera switch, grid round-trip) cannot trigger a
     // refresh or clear the flags of the stream now on screen.
@@ -245,7 +262,16 @@ public class LiveActivity extends AppCompatActivity {
             public void onRtspStatusDisconnecting() { }
 
             @Override
-            public void onRtspStatusDisconnected() { }
+            public void onRtspStatusDisconnected() {
+                // A stream that ends by itself leaves the last frame frozen on
+                // screen. Treat it like a failure so it gets retried.
+                runOnUiThread(() -> {
+                    if (generation != streamGeneration) {
+                        return;
+                    }
+                    onPlaybackError(false);
+                });
+            }
 
             @Override
             public void onRtspStatusFailedUnauthorized() {
@@ -285,6 +311,9 @@ public class LiveActivity extends AppCompatActivity {
                     needReconnect = false;
                     errorRefreshAttempted = false;
                     lastFailureUnauthorized = false;
+                    failureReported = false;
+                    autoRetryCount = 0;
+                    cancelAutoRetry();
                 });
             }
 
@@ -294,9 +323,10 @@ public class LiveActivity extends AppCompatActivity {
     }
 
     private void onPlaybackError(boolean unauthorized) {
-        if (navigatingToLogin) {
+        if (navigatingToLogin || failureReported) {
             return;
         }
+        failureReported = true;
         findViewById(R.id.loading_progress).setVisibility(GONE);
 
         if (unauthorized) {
@@ -318,6 +348,17 @@ public class LiveActivity extends AppCompatActivity {
         if (isFinishing() || isDestroyed()) {
             return;
         }
+        if (autoRetryCount < AUTO_RETRY_LIMIT && !navigatingToLogin) {
+            autoRetryCount++;
+            needReconnect = false;
+            findViewById(R.id.reconnect_button).setVisibility(GONE);
+            findViewById(R.id.loading_progress).setVisibility(VISIBLE);
+            messageView.setText(R.string.reconnecting);
+            messageView.setVisibility(VISIBLE);
+            cancelAutoRetry();
+            mainHandler.postDelayed(autoRetryRunnable, AUTO_RETRY_DELAY_MS);
+            return;
+        }
         Toast.makeText(this, R.string.error_playing, Toast.LENGTH_SHORT).show();
         needReconnect = true;
         messageView.setText(R.string.error_playing);
@@ -327,7 +368,13 @@ public class LiveActivity extends AppCompatActivity {
         reconnect.requestFocus();
     }
 
+    private void cancelAutoRetry() {
+        mainHandler.removeCallbacks(autoRetryRunnable);
+    }
+
     private void showCameraUnavailable(int messageRes) {
+        cancelAutoRetry();
+        failureReported = true;
         stopPlayback();
         needReconnect = true;
         findViewById(R.id.loading_progress).setVisibility(GONE);
@@ -462,13 +509,22 @@ public class LiveActivity extends AppCompatActivity {
     }
 
     private void onReconnectClicked() {
+        autoRetryCount = 0;
+        cancelAutoRetry();
+        attemptReconnect();
+    }
+
+    /** The retry path shared by the Reconnect button and the auto-retry timer. */
+    private void attemptReconnect() {
         if (navigatingToLogin) {
             return;
         }
+        failureReported = false;
+        needReconnect = false;
+        cancelAutoRetry();
         View reconnect = findViewById(R.id.reconnect_button);
         reconnect.setVisibility(GONE);
         messageView.setVisibility(GONE);
-        needReconnect = false;
 
         Camera camera = currentCamera();
         if (camera == null) {
@@ -511,6 +567,8 @@ public class LiveActivity extends AppCompatActivity {
         }
 
         final int generation = ++streamGeneration;
+        failureReported = false;
+        cancelAutoRetry();
         videoLayout.setStatusListener(createStatusListener(generation));
 
         findViewById(R.id.loading_progress).setVisibility(VISIBLE);
@@ -609,6 +667,22 @@ public class LiveActivity extends AppCompatActivity {
                 }
                 break;
 
+            case KeyEvent.KEYCODE_CHANNEL_UP:
+            case KeyEvent.KEYCODE_MEDIA_NEXT:
+                if (!ptzMode) {
+                    nextVideo();
+                    return true;
+                }
+                break;
+
+            case KeyEvent.KEYCODE_CHANNEL_DOWN:
+            case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
+                if (!ptzMode) {
+                    previousVideo();
+                    return true;
+                }
+                break;
+
             case KeyEvent.KEYCODE_DPAD_CENTER:
             case KeyEvent.KEYCODE_ENTER:
                 if (needReconnect) {
@@ -625,7 +699,7 @@ public class LiveActivity extends AppCompatActivity {
                     lastCenterPressTime = currentTime;
                     pendingSingleTap = true;
 
-                    new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    mainHandler.postDelayed(() -> {
                         if (pendingSingleTap) {
                             pendingSingleTap = false;
                             lastCenterPressTime = 0;
@@ -647,6 +721,12 @@ public class LiveActivity extends AppCompatActivity {
         if (cameraList.size() <= 1) {
             return;
         }
+        if (scaled) {
+            toggleZoom();
+        }
+        autoRetryCount = 0;
+        failureReported = false;
+        cancelAutoRetry();
         currentIndex = (currentIndex + 1) % cameraList.size();
         errorRefreshAttempted = false;
         requestPlay(cameraList.get(currentIndex), true, true);
@@ -656,6 +736,12 @@ public class LiveActivity extends AppCompatActivity {
         if (cameraList.size() <= 1) {
             return;
         }
+        if (scaled) {
+            toggleZoom();
+        }
+        autoRetryCount = 0;
+        failureReported = false;
+        cancelAutoRetry();
         currentIndex = (currentIndex - 1 + cameraList.size()) % cameraList.size();
         errorRefreshAttempted = false;
         requestPlay(cameraList.get(currentIndex), true, true);
@@ -712,6 +798,9 @@ public class LiveActivity extends AppCompatActivity {
             // Returning from the grid or from the background: the player was
             // stopped in onStop(), so restart it. Give the list a chance to be
             // refreshed if it is old or the previous attempt was rejected.
+            autoRetryCount = 0;
+            failureReported = false;
+            cancelAutoRetry();
             if (CameraRepository.isOlderThan(CAMERA_LIST_MAX_AGE_MS)) {
                 proactiveRefreshAttempted = false;
             }
@@ -733,6 +822,7 @@ public class LiveActivity extends AppCompatActivity {
             ptzController.cancel();
             ptzController = null;
         }
+        cancelAutoRetry();
         stopPlayback();
         if (!navigatingToLogin && !isFinishing()) {
             wasStopped = true;
