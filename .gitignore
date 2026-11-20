@@ -13,5 +13,6 @@
 .externalNativeBuild
 .cxx
 .android/
+/.gradle-docker
 *.keystore
 *.base64
