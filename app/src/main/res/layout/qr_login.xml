@@ -1,73 +1,92 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#070e19">
+    android:background="@drawable/browse_background">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:gravity="center_horizontal|center_vertical"
-        android:padding="30dp">
+        android:padding="40dp">
+
+        <ImageView
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_marginBottom="16dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_launcher_foreground" />
 
         <TextView
             android:id="@+id/title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:fontFamily="sans-serif-medium"
             android:text="@string/sign_in_to_enverre_tv"
-            android:textSize="30sp"
-            android:textStyle="bold"
-            android:textColor="#FFFFFF"
-            android:layout_marginBottom="16dp"/>
+            android:textColor="@color/on_surface"
+            android:textSize="32sp" />
 
         <TextView
             android:id="@+id/txtSubtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
             android:text="@string/scan_the_qr_code_with_your_phone"
-            android:textSize="20sp"
-            android:textColor="#B0C4DE"
-            android:layout_marginBottom="18dp"/>
+            android:textColor="@color/on_surface_variant"
+            android:textSize="18sp" />
 
-        <FrameLayout
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="300dp"
             android:layout_height="300dp"
-            android:background="#FFFFFF"
-            android:layout_marginBottom="18dp">
+            android:layout_marginBottom="24dp"
+            app:cardBackgroundColor="@color/qr_card"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="12dp"
+            app:cardPreventCornerOverlap="true">
 
             <ImageView
                 android:id="@+id/qrImage"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:contentDescription="QR Code"/>
-
-        </FrameLayout>
+                android:layout_margin="18dp"
+                android:contentDescription="@string/qr_code_content_description" />
+        </com.google.android.material.card.MaterialCardView>
 
         <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:background="@drawable/qr_code_bg"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="18dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="18dp"
+            android:paddingBottom="10dp">
 
             <TextView
                 android:id="@+id/txtCodeLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginEnd="10dp"
                 android:text="@string/verification_code"
-                android:textSize="18sp"
-                android:textColor="#B0C4DE"
-                android:layout_marginEnd="5dp"/>
+                android:textColor="@color/on_surface_variant"
+                android:textSize="16sp" />
 
             <TextView
                 android:id="@+id/txtUserCode"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.12"
                 android:text="CODE123"
-                android:textSize="18sp"
+                android:textColor="@color/on_surface"
+                android:textSize="20sp"
                 android:textStyle="bold"
-                android:textColor="#FFFFFF"
-                android:letterSpacing="0.1"
                 tools:ignore="HardcodedText" />
         </LinearLayout>
 

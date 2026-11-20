@@ -1,9 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ripple xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="@color/grid_button_ripple">
-    <item>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
         <shape android:shape="oval">
             <solid android:color="@color/grid_button_bg" />
+            <stroke
+                android:width="2dp"
+                android:color="@color/focus" />
         </shape>
     </item>
-</ripple>
+    <item>
+        <ripple android:color="@color/grid_button_ripple">
+            <item>
+                <shape android:shape="oval">
+                    <solid android:color="@color/grid_button_bg" />
+                </shape>
+            </item>
+        </ripple>
+    </item>
+</selector>

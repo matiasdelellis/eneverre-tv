@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -15,13 +16,14 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.leanback.app.BrowseSupportFragment;
 import androidx.leanback.widget.ArrayObjectAdapter;
 import androidx.leanback.widget.HeaderItem;
-import androidx.leanback.widget.ImageCardView;
 import androidx.leanback.widget.ListRow;
 import androidx.leanback.widget.ListRowPresenter;
 import androidx.leanback.widget.OnItemViewClickedListener;
 import androidx.leanback.widget.Presenter;
 import androidx.leanback.widget.Row;
 import androidx.leanback.widget.RowPresenter;
+
+import com.google.android.material.card.MaterialCardView;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -175,40 +177,61 @@ public class LocationsActivity extends FragmentActivity {
     }
 
     public static class CardPresenter extends Presenter {
-        private static final int CARD_WIDTH = 313;
-        private static final int CARD_HEIGHT = 176;
+        private static final float FOCUS_SCALE = 1.04f;
 
         @Override
         public ViewHolder onCreateViewHolder(ViewGroup parent) {
-            Context context = parent.getContext();
-            ImageCardView card = new ImageCardView(context);
-            card.setMainImageDimensions(CARD_WIDTH, CARD_HEIGHT);
-            card.setMainImageScaleType(ImageView.ScaleType.CENTER_CROP);
+            MaterialCardView card = (MaterialCardView) LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.card_camera, parent, false);
+            card.setOnFocusChangeListener((view, hasFocus) -> {
+                float scale = hasFocus ? FOCUS_SCALE : 1f;
+                view.animate()
+                        .scaleX(scale)
+                        .scaleY(scale)
+                        .setDuration(hasFocus ? 160 : 120)
+                        .start();
+                card.setStrokeWidth(hasFocus ? dp(view.getContext(), 3) : 0);
+                card.setStrokeColor(ContextCompat.getColor(view.getContext(), R.color.focus));
+                card.setCardElevation(dp(view.getContext(), hasFocus ? 14 : 4));
+            });
             return new ViewHolder(card);
         }
 
         @Override
         public void onBindViewHolder(ViewHolder viewHolder, Object item) {
-            ImageCardView card = (ImageCardView) viewHolder.view;
+            MaterialCardView card = (MaterialCardView) viewHolder.view;
+            ImageView image = card.findViewById(R.id.card_image);
+            TextView title = card.findViewById(R.id.card_title);
+            TextView subtitle = card.findViewById(R.id.card_subtitle);
+            TextView badge = card.findViewById(R.id.card_badge);
+
             if (item instanceof Camera) {
                 Camera cam = (Camera) item;
-                card.setTitleText(cam.getName());
+                title.setText(cam.getName());
                 String sub = cam.getComment();
                 if (sub == null || sub.isEmpty()) {
                     sub = cam.getLocation();
                 }
-                card.setContentText(sub);
-                card.setMainImageDimensions(CARD_WIDTH, CARD_HEIGHT);
-                card.setBadgeImage(null);
-                card.setInfoAreaBackgroundColor(ContextCompat.getColor(card.getContext(), R.color.card_info_bg));
+                showSubtitle(subtitle, sub);
+                badge.setText(badgeText(cam));
+                tintBadge(badge, badgeTint(cam));
+                badge.setVisibility(View.VISIBLE);
+                card.setContentDescription(cam.getName());
             } else if (item instanceof ViewGridAction) {
                 ViewGridAction action = (ViewGridAction) item;
-                card.setTitleText(action.locationName);
-                card.setContentText(card.getContext().getString(R.string.view_grid_action));
-                card.setMainImageDimensions(CARD_WIDTH, CARD_HEIGHT);
-                card.setBadgeImage(ContextCompat.getDrawable(card.getContext(), R.drawable.ic_grid_badge));
-                card.setInfoAreaBackgroundColor(ContextCompat.getColor(card.getContext(), R.color.card_info_bg));
+                title.setText(action.locationName);
+                showSubtitle(subtitle, card.getContext().getString(R.string.view_grid_action));
+                badge.setText(R.string.grid_badge);
+                tintBadge(badge, R.color.card_badge_bg);
+                badge.setVisibility(View.VISIBLE);
+                card.setContentDescription(action.locationName);
             }
+
+            card.setStrokeWidth(card.isFocused() ? dp(card.getContext(), 3) : 0);
+            card.setStrokeColor(ContextCompat.getColor(card.getContext(), R.color.focus));
+            float scale = card.isFocused() ? FOCUS_SCALE : 1f;
+            card.setScaleX(scale);
+            card.setScaleY(scale);
 
             final String bannerUrl = (item instanceof ViewGridAction)
                     ? ChannelImageLoader.BANNER_GRID
@@ -216,16 +239,52 @@ public class LocationsActivity extends FragmentActivity {
 
             Drawable cached = ChannelImageLoader.getDrawable(card.getContext(), bannerUrl);
             if (cached != null) {
-                card.setMainImage(cached);
-                loadThumbnailIfAvailable(card, item);
+                image.setImageDrawable(cached);
+                loadThumbnailIfAvailable(card, item, image);
             } else {
-                card.getMainImageView().setTag(bannerUrl);
-                ChannelImageLoader.loadInto(card.getContext(), bannerUrl, card.getMainImageView(), drawable -> {
-                    if (bannerUrl.equals(card.getMainImageView().getTag())) {
-                        card.setMainImage(drawable);
-                        loadThumbnailIfAvailable(card, item);
+                image.setTag(bannerUrl);
+                ChannelImageLoader.loadInto(card.getContext(), bannerUrl, image, drawable -> {
+                    if (bannerUrl.equals(image.getTag())) {
+                        image.setImageDrawable(drawable);
+                        loadThumbnailIfAvailable(card, item, image);
                     }
                 });
+            }
+        }
+
+        private static int badgeText(Camera camera) {
+            if (!camera.isEnabled()) {
+                return R.string.offline_badge;
+            }
+            if (camera.getPrivacy()) {
+                return R.string.paused_badge;
+            }
+            if (camera.isScheduleOff()) {
+                return R.string.schedule_badge;
+            }
+            return R.string.live_badge;
+        }
+
+        private static int badgeTint(Camera camera) {
+            if (camera.isEnabled() && !camera.getPrivacy() && !camera.isScheduleOff()) {
+                return R.color.card_badge_bg;
+            }
+            return R.color.surface_highest;
+        }
+
+        private static void tintBadge(TextView badge, int colorRes) {
+            Drawable background = badge.getBackground();
+            if (background != null) {
+                background.mutate().setTint(ContextCompat.getColor(badge.getContext(), colorRes));
+            }
+        }
+
+        private static void showSubtitle(TextView subtitle, String text) {
+            if (text == null || text.isEmpty()) {
+                subtitle.setVisibility(View.GONE);
+            } else {
+                subtitle.setText(text);
+                subtitle.setVisibility(View.VISIBLE);
             }
         }
 
@@ -234,7 +293,7 @@ public class LocationsActivity extends FragmentActivity {
          * the server advertises the thumbnail capability. The banner remains
          * as the fallback if the snapshot request fails.
          */
-        private void loadThumbnailIfAvailable(ImageCardView card, Object item) {
+        private void loadThumbnailIfAvailable(MaterialCardView card, Object item, ImageView image) {
             if (!(item instanceof Camera)) {
                 return;
             }
@@ -243,13 +302,22 @@ public class LocationsActivity extends FragmentActivity {
                 return;
             }
             ChannelImageLoader.loadThumbnail(card.getContext(), camera,
-                    card.getMainImageView(), card::setMainImage);
+                    image, image::setImageDrawable);
         }
 
         @Override
         public void onUnbindViewHolder(ViewHolder viewHolder) {
-            ImageCardView card = (ImageCardView) viewHolder.view;
-            card.setMainImage(null);
+            MaterialCardView card = (MaterialCardView) viewHolder.view;
+            ImageView image = card.findViewById(R.id.card_image);
+            image.setImageDrawable(null);
+            image.setTag(null);
+            card.setStrokeWidth(0);
+            card.setScaleX(1f);
+            card.setScaleY(1f);
+        }
+
+        private static int dp(Context context, int value) {
+            return Math.round(value * context.getResources().getDisplayMetrics().density);
         }
     }
 }

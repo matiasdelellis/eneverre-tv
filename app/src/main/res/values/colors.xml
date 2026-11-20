@@ -8,15 +8,44 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <color name="brand_color">#FF1565C0</color>
-    <color name="background_default">#FF101418</color>
-    <color name="empty_message_color">#FFB0B7BE</color>
+    <!-- Brand palette, matching the phone app. -->
+    <color name="brand_primary">#FF0082C9</color>
+    <color name="brand_primary_dark">#FF006A9E</color>
+    <color name="brand_accent">#FF3DAFDC</color>
+    <color name="brand_on_primary">#FFFFFFFF</color>
+    <color name="brand_container">#FF0E3A52</color>
+    <color name="brand_on_container">#FFCFE9F8</color>
+    <color name="brand_color">@color/brand_primary</color>
+
+    <!-- Dark TV surfaces. -->
+    <color name="background_default">#FF070B10</color>
+    <color name="background_elevated">#FF0E151D</color>
+    <color name="surface">#FF121A23</color>
+    <color name="surface_high">#FF1B2530</color>
+    <color name="surface_highest">#FF25313E</color>
+    <color name="on_surface">#FFF2F6FA</color>
+    <color name="on_surface_variant">#FFA8B4C0</color>
+    <color name="outline">#FF2C3844</color>
+    <color name="focus">#FF4FC3F7</color>
+    <color name="error">#FFFF6B6B</color>
+
+    <color name="empty_message_color">@color/on_surface_variant</color>
     <color name="card_info_bg">#CC000000</color>
-    <color name="tile_background">#FF1A1F26</color>
-    <color name="tile_focus_stroke">#FF42A5F5</color>
+    <color name="tile_background">@color/surface</color>
+    <color name="tile_focus_stroke">@color/focus</color>
     <color name="tile_name_bg">#CC000000</color>
     <color name="tile_name_text">#FFFFFFFF</color>
-    <color name="location_label_color">#FFECEFF1</color>
-    <color name="grid_button_bg">#80000000</color>
-    <color name="grid_button_ripple">#80FFFFFF</color>
+    <color name="location_label_color">@color/on_surface</color>
+    <color name="grid_button_bg">#99070B10</color>
+    <color name="grid_button_ripple">#664FC3F7</color>
+
+    <color name="live_badge_bg">#CC000000</color>
+    <color name="live_badge_text">#FFFFFFFF</color>
+    <color name="live_dot">#FFFF4D4F</color>
+    <color name="card_badge_bg">#CC0082C9</color>
+    <color name="card_badge_text">#FFFFFFFF</color>
+    <color name="scrim_start">#00000000</color>
+    <color name="scrim_end">#E6000000</color>
+    <color name="qr_card">#FFFFFFFF</color>
+    <color name="qr_text_secondary">#FFA8B4C0</color>
 </resources>

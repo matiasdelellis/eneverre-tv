@@ -209,6 +209,13 @@ public class LocationGridActivity extends AppCompatActivity {
                 if (indicator != null) {
                     indicator.setVisibility(hasFocus ? View.VISIBLE : View.GONE);
                 }
+                float scale = hasFocus ? 1.03f : 1f;
+                v.animate()
+                        .scaleX(scale)
+                        .scaleY(scale)
+                        .setDuration(hasFocus ? 160 : 120)
+                        .start();
+                v.setElevation(hasFocus ? dp(10) : 0);
                 if (hasFocus) {
                     focusedIndex = (int) v.getTag();
                     focusedTile = v;
@@ -576,6 +583,10 @@ public class LocationGridActivity extends AppCompatActivity {
             }
         }
         players.clear();
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
     private void onSessionExpired() {

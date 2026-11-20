@@ -90,6 +90,24 @@ public class LiveActivity extends AppCompatActivity {
         attemptReconnect();
     };
 
+    private static final long LIVE_INFO_TIMEOUT_MS = 4000;
+    private final Runnable hideLiveInfoRunnable = () -> {
+        View info = findViewById(R.id.live_info);
+        View scrim = findViewById(R.id.live_top_scrim);
+        if (info == null || scrim == null) {
+            return;
+        }
+        info.animate()
+                .alpha(0f)
+                .setDuration(350)
+                .withEndAction(() -> info.setVisibility(GONE))
+                .start();
+        scrim.animate()
+                .alpha(0f)
+                .setDuration(350)
+                .start();
+    };
+
     // Incremented on every start/stop so callbacks from a stream that was
     // already torn down (camera switch, grid round-trip) cannot trigger a
     // refresh or clear the flags of the stream now on screen.
@@ -550,6 +568,33 @@ public class LiveActivity extends AppCompatActivity {
         requestPlay(camera, false, true);
     }
 
+    private void showLiveInfo(Camera camera) {
+        View info = findViewById(R.id.live_info);
+        View scrim = findViewById(R.id.live_top_scrim);
+        TextView name = findViewById(R.id.live_camera_name);
+        TextView location = findViewById(R.id.live_camera_location);
+        if (info == null || scrim == null || name == null || location == null) {
+            return;
+        }
+
+        name.setText(camera.getName());
+        String locationText = camera.getLocation();
+        if (locationText == null || locationText.isEmpty()) {
+            location.setVisibility(GONE);
+        } else {
+            location.setText(locationText);
+            location.setVisibility(VISIBLE);
+        }
+
+        info.animate().cancel();
+        scrim.animate().cancel();
+        info.setAlpha(1f);
+        scrim.setAlpha(1f);
+        info.setVisibility(VISIBLE);
+        mainHandler.removeCallbacks(hideLiveInfoRunnable);
+        mainHandler.postDelayed(hideLiveInfoRunnable, LIVE_INFO_TIMEOUT_MS);
+    }
+
     private void startStream(Camera camera) {
         if (camera == null || navigatingToLogin) {
             return;
@@ -577,6 +622,7 @@ public class LiveActivity extends AppCompatActivity {
         needReconnect = false;
 
         Toast.makeText(this, camera.getName(), Toast.LENGTH_SHORT).show();
+        showLiveInfo(camera);
 
         ensurePtzController(camera);
 
@@ -823,6 +869,7 @@ public class LiveActivity extends AppCompatActivity {
             ptzController = null;
         }
         cancelAutoRetry();
+        mainHandler.removeCallbacks(hideLiveInfoRunnable);
         stopPlayback();
         if (!navigatingToLogin && !isFinishing()) {
             wasStopped = true;
