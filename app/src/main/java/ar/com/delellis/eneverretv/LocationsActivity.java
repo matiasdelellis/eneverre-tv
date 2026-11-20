@@ -217,14 +217,33 @@ public class LocationsActivity extends FragmentActivity {
             Drawable cached = ChannelImageLoader.getDrawable(card.getContext(), bannerUrl);
             if (cached != null) {
                 card.setMainImage(cached);
+                loadThumbnailIfAvailable(card, item);
             } else {
                 card.getMainImageView().setTag(bannerUrl);
                 ChannelImageLoader.loadInto(card.getContext(), bannerUrl, card.getMainImageView(), drawable -> {
                     if (bannerUrl.equals(card.getMainImageView().getTag())) {
                         card.setMainImage(drawable);
+                        loadThumbnailIfAvailable(card, item);
                     }
                 });
             }
+        }
+
+        /**
+         * Replaces the static card banner with the camera's current still when
+         * the server advertises the thumbnail capability. The banner remains
+         * as the fallback if the snapshot request fails.
+         */
+        private void loadThumbnailIfAvailable(ImageCardView card, Object item) {
+            if (!(item instanceof Camera)) {
+                return;
+            }
+            Camera camera = (Camera) item;
+            if (!camera.hasThumbnail()) {
+                return;
+            }
+            ChannelImageLoader.loadThumbnail(card.getContext(), camera,
+                    card.getMainImageView(), card::setMainImage);
         }
 
         @Override
