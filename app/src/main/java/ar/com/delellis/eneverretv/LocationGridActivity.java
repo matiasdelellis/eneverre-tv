@@ -14,6 +14,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.alexvas.rtsp.RtspClient;
 import com.alexvas.rtsp.codec.VideoDecodeThread;
 import com.alexvas.rtsp.widget.RtspStatusListener;
 import com.alexvas.rtsp.widget.RtspSurfaceView;
@@ -330,7 +331,7 @@ public class LocationGridActivity extends AppCompatActivity {
         } else {
             // Opaque URL: no userinfo split, no Authorization header, no rebuild.
             Uri uri = Uri.parse(url);
-            surfaceView.init(uri, null, null, "EneverreTV", null);
+            surfaceView.init(uri, null, null, "EneverreTV", null, RtspClient.Transport.TCP);
             surfaceView.start(true, false, false);
         }
 

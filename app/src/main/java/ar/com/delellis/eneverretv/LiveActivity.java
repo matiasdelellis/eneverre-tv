@@ -21,6 +21,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.alexvas.rtsp.RtspClient;
 import com.alexvas.rtsp.codec.VideoDecodeThread;
 import com.alexvas.rtsp.widget.RtspStatusListener;
 import com.alexvas.rtsp.widget.RtspSurfaceView;
@@ -524,7 +525,9 @@ public class LiveActivity extends AppCompatActivity {
         // The URL is opaque: no userinfo, no Authorization header, no
         // rebuilding. Uri.parse() preserves both path segments exactly.
         Uri uri = Uri.parse(url);
-        videoLayout.init(uri, null, null, "EneverreTV", null);
+        // Opaque URL, and TCP like the phone app: the relay serves interleaved
+        // RTSP, and the library only needs a Context for multicast.
+        videoLayout.init(uri, null, null, "EneverreTV", null, RtspClient.Transport.TCP);
         videoLayout.start(true, true, false);
     }
 
