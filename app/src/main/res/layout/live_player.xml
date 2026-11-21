@@ -20,6 +20,17 @@
         android:clickable="false"
         android:focusable="false" />
 
+    <ImageView
+        android:id="@+id/video_blur"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0.55"
+        android:clickable="false"
+        android:contentDescription="@null"
+        android:focusable="false"
+        android:scaleType="centerCrop"
+        android:visibility="gone" />
+
     <View
         android:id="@+id/live_top_scrim"
         android:layout_width="match_parent"

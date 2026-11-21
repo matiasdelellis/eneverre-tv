@@ -6,6 +6,7 @@ import static android.view.View.VISIBLE;
 import static java.lang.Math.clamp;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.net.Uri;
@@ -14,8 +15,10 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.PixelCopy;
 import android.view.SurfaceHolder;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -49,6 +52,7 @@ public class LiveActivity extends AppCompatActivity {
     private RtspSurfaceView videoLayout;
     private TextView messageView;
     private View videoCover;
+    private ImageView videoBlur;
 
     private boolean scaled = false;
     private boolean ptzMode = false;
@@ -167,6 +171,7 @@ public class LiveActivity extends AppCompatActivity {
         videoLayout = findViewById(R.id.videoLayout);
         messageView = findViewById(R.id.live_message);
         videoCover = findViewById(R.id.video_cover);
+        videoBlur = findViewById(R.id.video_blur);
         getWindow().getDecorView().setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
@@ -416,7 +421,7 @@ public class LiveActivity extends AppCompatActivity {
             return;
         }
         Toast.makeText(this, R.string.error_playing, Toast.LENGTH_SHORT).show();
-        showVideoCover();
+        showFailureBackdrop();
         needReconnect = true;
         messageView.setText(R.string.error_playing);
         messageView.setVisibility(VISIBLE);
@@ -436,7 +441,7 @@ public class LiveActivity extends AppCompatActivity {
         if (camera != null) {
             showLiveInfo(camera);
         }
-        showVideoCover();
+        showFailureBackdrop();
         stopPlayback();
         needReconnect = true;
         findViewById(R.id.loading_progress).setVisibility(GONE);
@@ -755,6 +760,7 @@ public class LiveActivity extends AppCompatActivity {
         if (videoCover == null) {
             return;
         }
+        hideBlurredFrame();
         videoCover.animate().cancel();
         videoCover.setAlpha(1f);
         videoCover.setVisibility(VISIBLE);
@@ -764,12 +770,67 @@ public class LiveActivity extends AppCompatActivity {
         if (videoCover == null) {
             return;
         }
+        hideBlurredFrame();
         videoCover.animate().cancel();
         videoCover.animate()
                 .alpha(0f)
                 .setDuration(180)
                 .withEndAction(() -> videoCover.setVisibility(GONE))
                 .start();
+    }
+
+    private void showFailureBackdrop() {
+        showVideoCover();
+        captureBlurredFrame();
+    }
+
+    /**
+     * When a stream fails, keep the context of its last picture: capture the
+     * SurfaceView, shrink it hard and let the ImageView scale it back up. The
+     * result is a soft blur that works on every API level without RenderEffect
+     * or RenderScript.
+     */
+    private void captureBlurredFrame() {
+        if (videoLayout == null || videoBlur == null
+                || videoLayout.getWidth() <= 0 || videoLayout.getHeight() <= 0) {
+            return;
+        }
+        final int width = videoLayout.getWidth();
+        final int height = videoLayout.getHeight();
+        final Bitmap full;
+        try {
+            full = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        } catch (OutOfMemoryError e) {
+            Log.w(TAG, "Could not allocate the failure backdrop", e);
+            return;
+        }
+        try {
+            PixelCopy.request(videoLayout, full, result -> {
+                if (result != PixelCopy.SUCCESS) {
+                    full.recycle();
+                    return;
+                }
+                int smallWidth = Math.max(1, width / 10);
+                int smallHeight = Math.max(1, height / 10);
+                Bitmap small = Bitmap.createScaledBitmap(full, smallWidth, smallHeight, true);
+                if (small != full) {
+                    full.recycle();
+                }
+                videoBlur.setImageBitmap(small);
+                videoBlur.setVisibility(VISIBLE);
+            }, mainHandler);
+        } catch (IllegalArgumentException e) {
+            full.recycle();
+            Log.w(TAG, "Could not capture the failure backdrop", e);
+        }
+    }
+
+    private void hideBlurredFrame() {
+        if (videoBlur == null) {
+            return;
+        }
+        videoBlur.setVisibility(GONE);
+        videoBlur.setImageDrawable(null);
     }
 
     @Override
