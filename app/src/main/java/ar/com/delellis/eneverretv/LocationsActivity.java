@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -181,7 +182,12 @@ public class LocationsActivity extends FragmentActivity {
 
         @Override
         public ViewHolder onCreateViewHolder(ViewGroup parent) {
-            MaterialCardView card = (MaterialCardView) LayoutInflater.from(parent.getContext())
+            // LocationsActivity uses Theme.Leanback (BrowseSupportFragment),
+            // which is not a MaterialComponents theme. MaterialCardView checks
+            // its context theme, so inflate the card with the app's Material 3
+            // theme while still attaching it to the Leanback row.
+            Context themed = new ContextThemeWrapper(parent.getContext(), R.style.Theme_EneverreTV);
+            MaterialCardView card = (MaterialCardView) LayoutInflater.from(themed)
                     .inflate(R.layout.card_camera, parent, false);
             card.setOnFocusChangeListener((view, hasFocus) -> {
                 float scale = hasFocus ? FOCUS_SCALE : 1f;
