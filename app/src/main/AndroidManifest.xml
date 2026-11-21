@@ -25,7 +25,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.EneverreTV">
+        android:theme="@style/Theme.EneverreTV"
+        android:usesCleartextTraffic="true">
 
         <activity
             android:name=".LiveActivity"
