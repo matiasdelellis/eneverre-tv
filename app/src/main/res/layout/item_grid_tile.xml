@@ -5,7 +5,7 @@
     android:background="@drawable/grid_tile_background"
     android:clipToOutline="true">
 
-    <FrameLayout
+    <ar.com.delellis.eneverretv.player.AspectRatioFrameLayout
         android:id="@+id/tile_video_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />

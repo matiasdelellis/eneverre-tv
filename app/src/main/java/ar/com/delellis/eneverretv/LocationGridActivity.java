@@ -26,6 +26,7 @@ import java.util.List;
 import ar.com.delellis.eneverretv.api.CameraRepository;
 import ar.com.delellis.eneverretv.api.SessionManager;
 import ar.com.delellis.eneverretv.api.model.Camera;
+import ar.com.delellis.eneverretv.player.AspectRatioFrameLayout;
 import ar.com.delellis.eneverretv.player.RtspUrl;
 
 public class LocationGridActivity extends AppCompatActivity {
@@ -254,6 +255,10 @@ public class LocationGridActivity extends AppCompatActivity {
         nameView.setText(camera.getName());
 
         FrameLayout videoContainer = tile.findViewById(R.id.tile_video_container);
+        AspectRatioFrameLayout aspectContainer = (AspectRatioFrameLayout) videoContainer;
+        if (camera.getWidth() > 0 && camera.getHeight() > 0) {
+            aspectContainer.setAspectRatio(camera.getWidth() / (float) camera.getHeight());
+        }
         RtspSurfaceView surfaceView = new RtspSurfaceView(this);
         videoContainer.addView(surfaceView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -334,7 +339,17 @@ public class LocationGridActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onRtspFrameSizeChanged(int width, int height) { }
+            public void onRtspFrameSizeChanged(int width, int height) {
+                if (width <= 0 || height <= 0) {
+                    return;
+                }
+                runOnUiThread(() -> {
+                    if (generation != gridGeneration) {
+                        return;
+                    }
+                    aspectContainer.setAspectRatio(width / (float) height);
+                });
+            }
         });
 
         String url = camera.getRtsp();
