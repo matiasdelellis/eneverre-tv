@@ -19,7 +19,7 @@
         android:textColor="@color/location_label_color"
         android:textSize="26sp" />
 
-    <GridLayout
+    <ar.com.delellis.eneverretv.player.CameraGridLayout
         android:id="@+id/grid_layout"
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -28,10 +28,7 @@
         android:paddingTop="16dp"
         android:paddingEnd="24dp"
         android:paddingBottom="24dp"
-        android:columnCount="2"
-        android:rowCount="2"
         android:clipChildren="false"
-        android:clipToPadding="false"
-        android:useDefaultMargins="false" />
+        android:clipToPadding="false" />
 
 </LinearLayout>

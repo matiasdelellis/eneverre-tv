@@ -8,7 +8,6 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
-import android.widget.GridLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -27,6 +26,7 @@ import ar.com.delellis.eneverretv.api.CameraRepository;
 import ar.com.delellis.eneverretv.api.SessionManager;
 import ar.com.delellis.eneverretv.api.model.Camera;
 import ar.com.delellis.eneverretv.player.AspectRatioFrameLayout;
+import ar.com.delellis.eneverretv.player.CameraGridLayout;
 import ar.com.delellis.eneverretv.player.RtspUrl;
 
 public class LocationGridActivity extends AppCompatActivity {
@@ -40,7 +40,7 @@ public class LocationGridActivity extends AppCompatActivity {
     private static final int MAX_TILES = 4;
     private static final long CAMERA_LIST_MAX_AGE_MS = 5L * 60L * 60L * 1000L;
 
-    private GridLayout gridLayout;
+    private CameraGridLayout gridLayout;
     private TextView locationLabel;
     private View focusedTile;
 
@@ -186,23 +186,12 @@ public class LocationGridActivity extends AppCompatActivity {
             return;
         }
 
-        int cols = computeColumns(n);
-        int rows = (int) Math.ceil((double) n / cols);
-
-        gridLayout.setColumnCount(cols);
-        gridLayout.setRowCount(rows);
-
         final int generation = gridGeneration;
         for (int i = 0; i < n; i++) {
-            int row = i / cols;
-            int col = i % cols;
             View tile = createTile(cameras.get(i), i, generation);
-            GridLayout.LayoutParams params = new GridLayout.LayoutParams();
-            params.rowSpec = GridLayout.spec(row, 1f);
-            params.columnSpec = GridLayout.spec(col, 1f);
-            params.width = 0;
-            params.height = 0;
-            tile.setLayoutParams(params);
+            tile.setLayoutParams(new ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT));
             tile.setFocusable(true);
             tile.setFocusableInTouchMode(true);
             tile.setOnFocusChangeListener((v, hasFocus) -> {
@@ -241,10 +230,6 @@ public class LocationGridActivity extends AppCompatActivity {
             }
             tiles.get(focusIndex).requestFocus();
         }
-    }
-
-    private int computeColumns(int n) {
-        return n <= 1 ? 1 : 2;
     }
 
     private View createTile(Camera camera, int index, int generation) {
