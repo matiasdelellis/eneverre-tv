@@ -7,122 +7,130 @@
     android:layout_height="match_parent"
     android:background="@drawable/browse_background">
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:gravity="center_horizontal|center_vertical"
-        android:padding="40dp">
-
-        <ImageView
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_marginBottom="16dp"
-            android:contentDescription="@null"
-            android:src="@drawable/ic_launcher_foreground" />
-
-        <TextView
-            android:id="@+id/title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:fontFamily="sans-serif-medium"
-            android:text="@string/sign_in_to_enverre_tv"
-            android:textColor="@color/on_surface"
-            android:textSize="32sp" />
-
-        <TextView
-            android:id="@+id/txtSubtitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            android:text="@string/scan_the_qr_code_with_your_phone"
-            android:textColor="@color/on_surface_variant"
-            android:textSize="18sp" />
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="300dp"
-            android:layout_height="300dp"
-            android:layout_marginBottom="24dp"
-            app:cardBackgroundColor="@color/qr_card"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="12dp"
-            app:cardPreventCornerOverlap="true">
-
-            <ImageView
-                android:id="@+id/qrImage"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_margin="18dp"
-                android:contentDescription="@string/qr_code_content_description"
-                android:visibility="gone" />
-
-            <ProgressBar
-                android:id="@+id/qrProgress"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:indeterminateTint="@color/brand_primary" />
-
-            <TextView
-                android:id="@+id/qrError"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:gravity="center"
-                android:padding="24dp"
-                android:text="@string/qr_error_connecting"
-                android:textColor="@color/background_default"
-                android:textSize="16sp"
-                android:visibility="gone" />
-        </com.google.android.material.card.MaterialCardView>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/qrRetry"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            android:minWidth="180dp"
-            android:text="@string/retry"
-            android:textAllCaps="false"
-            android:visibility="gone"
-            app:cornerRadius="14dp" />
+        android:fillViewport="true"
+        android:clipToPadding="false">
 
         <LinearLayout
-            android:id="@+id/qr_code_container"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/qr_code_bg"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="18dp"
-            android:paddingTop="10dp"
-            android:paddingEnd="18dp"
-            android:paddingBottom="10dp"
-            android:visibility="gone">
+            android:orientation="vertical"
+            android:gravity="center_horizontal|center_vertical"
+            android:padding="32dp">
+
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_marginBottom="16dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_launcher_foreground" />
 
             <TextView
-                android:id="@+id/txtCodeLabel"
+                android:id="@+id/title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="10dp"
-                android:text="@string/verification_code"
-                android:textColor="@color/on_surface_variant"
-                android:textSize="16sp" />
-
-            <TextView
-                android:id="@+id/txtUserCode"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
                 android:fontFamily="sans-serif-medium"
-                android:letterSpacing="0.12"
-                android:text="CODE123"
+                android:text="@string/sign_in_to_enverre_tv"
                 android:textColor="@color/on_surface"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                tools:ignore="HardcodedText" />
+                android:textSize="32sp" />
+
+            <TextView
+                android:id="@+id/txtSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:text="@string/scan_the_qr_code_with_your_phone"
+                android:textColor="@color/on_surface_variant"
+                android:textSize="18sp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="300dp"
+                android:layout_height="300dp"
+                android:layout_marginBottom="24dp"
+                app:cardBackgroundColor="@color/qr_card"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="12dp"
+                app:cardPreventCornerOverlap="true">
+
+                <ImageView
+                    android:id="@+id/qrImage"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_margin="18dp"
+                    android:contentDescription="@string/qr_code_content_description"
+                    android:visibility="gone" />
+
+                <ProgressBar
+                    android:id="@+id/qrProgress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:indeterminateTint="@color/brand_primary" />
+
+                <TextView
+                    android:id="@+id/qrError"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:gravity="center"
+                    android:padding="24dp"
+                    android:text="@string/qr_error_connecting"
+                    android:textColor="@color/background_default"
+                    android:textSize="16sp"
+                    android:visibility="gone" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/qrRetry"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:minWidth="180dp"
+                android:text="@string/retry"
+                android:textAllCaps="false"
+                android:visibility="gone"
+                app:cornerRadius="14dp" />
+
+            <LinearLayout
+                android:id="@+id/qr_code_container"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/qr_code_bg"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="18dp"
+                android:paddingTop="10dp"
+                android:paddingEnd="18dp"
+                android:paddingBottom="10dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/txtCodeLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="10dp"
+                    android:text="@string/verification_code"
+                    android:textColor="@color/on_surface_variant"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/txtUserCode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.12"
+                    android:text="CODE123"
+                    android:textColor="@color/on_surface"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    tools:ignore="HardcodedText" />
+            </LinearLayout>
+
         </LinearLayout>
 
-    </LinearLayout>
+    </ScrollView>
 
 </FrameLayout>
