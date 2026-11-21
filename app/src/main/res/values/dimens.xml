@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compact defaults for short viewports (e.g. 720p TVs that report a
+         high density). Overridden by values-h480dp on normal TV layouts. -->
+    <dimen name="login_horizontal_padding">24dp</dimen>
+    <dimen name="login_vertical_padding">16dp</dimen>
+    <dimen name="login_gap">32dp</dimen>
+    <dimen name="qr_card_size">260dp</dimen>
+</resources>
