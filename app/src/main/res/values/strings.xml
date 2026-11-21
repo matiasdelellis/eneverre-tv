@@ -47,6 +47,9 @@
     <string name="retry">Retry</string>
     <string name="sign_in_again">Sign in again</string>
     <string name="crash_title">Eneverre TV stopped</string>
+    <string name="crash_prompt">The report is ready. Send it to get a QR code.</string>
+    <string name="crash_send">Send report</string>
+    <string name="crash_send_again">Retry upload</string>
     <string name="crash_sending">Sending the report…</string>
     <string name="crash_sent">Report sent. Scan the QR code.</string>
     <string name="crash_failed">Could not send the report. It is shown below.</string>

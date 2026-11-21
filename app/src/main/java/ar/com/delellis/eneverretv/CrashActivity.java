@@ -6,6 +6,8 @@ import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -47,6 +49,9 @@ public class CrashActivity extends Activity {
     private TextView status;
     private TextView urlView;
     private ImageView qrView;
+    private TextView qrHint;
+    private Button sendButton;
+    private String report;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,11 +61,21 @@ public class CrashActivity extends Activity {
         status = findViewById(R.id.crash_status);
         urlView = findViewById(R.id.crash_url);
         qrView = findViewById(R.id.crash_qr);
+        qrHint = findViewById(R.id.crash_qr_hint);
+        sendButton = findViewById(R.id.crash_send);
         TextView reportView = findViewById(R.id.crash_report);
 
         String path = getIntent().getStringExtra(EXTRA_REPORT_FILE);
-        String report = readReport(path);
+        report = readReport(path);
         reportView.setText(report);
+        sendButton.setOnClickListener(v -> sendReport());
+        sendButton.requestFocus();
+    }
+
+    private void sendReport() {
+        sendButton.setEnabled(false);
+        sendButton.setText(R.string.crash_send_again);
+        status.setText(R.string.crash_sending);
         upload(report);
     }
 
@@ -143,18 +158,22 @@ public class CrashActivity extends Activity {
 
     private void showReportUrl(String url) {
         status.setText(R.string.crash_sent);
+        sendButton.setVisibility(View.GONE);
         urlView.setText(url);
-        urlView.setVisibility(TextView.VISIBLE);
+        urlView.setVisibility(View.VISIBLE);
+        qrHint.setVisibility(View.VISIBLE);
 
         Bitmap bitmap = qrBitmap(url);
         if (bitmap != null) {
             qrView.setImageBitmap(bitmap);
-            qrView.setVisibility(ImageView.VISIBLE);
+            qrView.setVisibility(View.VISIBLE);
         }
     }
 
     private void showFailure() {
         status.setText(R.string.crash_failed);
+        sendButton.setEnabled(true);
+        sendButton.setText(R.string.crash_send_again);
     }
 
     private Bitmap qrBitmap(String content) {

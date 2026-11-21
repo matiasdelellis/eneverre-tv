@@ -26,9 +26,18 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:text="@string/crash_sending"
+            android:text="@string/crash_prompt"
             android:textColor="#FFA8B4C0"
             android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/crash_send"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:minWidth="180dp"
+            android:text="@string/crash_send"
+            android:textAllCaps="false" />
 
         <TextView
             android:id="@+id/crash_url"
@@ -72,12 +81,14 @@
         android:gravity="center_horizontal|center_vertical">
 
         <TextView
+            android:id="@+id/crash_qr_hint"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
             android:text="@string/crash_qr_hint"
             android:textColor="#FFF2F6FA"
-            android:textSize="16sp" />
+            android:textSize="16sp"
+            android:visibility="gone" />
 
         <ImageView
             android:id="@+id/crash_qr"

@@ -47,6 +47,9 @@
     <string name="retry">Reintentar</string>
     <string name="sign_in_again">Iniciar sesión de nuevo</string>
     <string name="crash_title">Eneverre TV se cerró</string>
+    <string name="crash_prompt">El reporte está listo. Envialo para obtener un QR.</string>
+    <string name="crash_send">Enviar reporte</string>
+    <string name="crash_send_again">Reintentar envío</string>
     <string name="crash_sending">Enviando el reporte…</string>
     <string name="crash_sent">Reporte enviado. Escaneá el QR.</string>
     <string name="crash_failed">No se pudo enviar. El reporte queda abajo.</string>
