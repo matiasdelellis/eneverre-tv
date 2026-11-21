@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -30,6 +31,10 @@ public class QrLoginActivity extends AppCompatActivity {
 
     private ImageView qrImage;
     private TextView txtUserCode;
+    private View qrProgress;
+    private View qrError;
+    private View qrRetry;
+    private View qrCodeContainer;
 
     private PollingManager pollingManager = new PollingManager();
 
@@ -45,35 +50,45 @@ public class QrLoginActivity extends AppCompatActivity {
 
         qrImage = findViewById(R.id.qrImage);
         txtUserCode = findViewById(R.id.txtUserCode);
+        qrProgress = findViewById(R.id.qrProgress);
+        qrError = findViewById(R.id.qrError);
+        qrRetry = findViewById(R.id.qrRetry);
+        qrCodeContainer = findViewById(R.id.qr_code_container);
+        qrRetry.setOnClickListener(v -> requestCode());
 
+        showQrLoading();
         requestCode();
     }
 
     private void requestCode() {
+        showQrLoading();
         Call<AuthDevice> authDeviceCall = ApiClient.get().api().authDevice(DeviceInfo.getDeviceName());
         authDeviceCall.enqueue(new Callback<AuthDevice>() {
             @Override
             public void onResponse(Call<AuthDevice> call, Response<AuthDevice> response) {
                 if (!response.isSuccessful() || response.body() == null) {
                     Log.e(TAG, "requestCode unsuccessful: HTTP " + response.code());
-                    Toast.makeText(QrLoginActivity.this, R.string.error_connecting_to_the_api, Toast.LENGTH_LONG).show();
+                    showQrError();
                     return;
                 }
                 authDevice = response.body();
                 Log.d(TAG, "requestCode got user_code=" + authDevice.getUserCode());
-                updateQR(authDevice.getUserCode());
-
-                initPolling();
+                if (updateQR(authDevice.getUserCode())) {
+                    showQrReady();
+                    initPolling();
+                } else {
+                    showQrError();
+                }
             }
             @Override
             public void onFailure(Call<AuthDevice> call, Throwable throwable) {
                 Log.e(TAG, "requestCode error: " + throwable.getMessage());
-                Toast.makeText(QrLoginActivity.this, R.string.error_connecting_to_the_api, Toast.LENGTH_LONG).show();
+                showQrError();
             }
         });
     }
 
-    private void updateQR(String user_code) {
+    private boolean updateQR(String user_code) {
         txtUserCode.setText(user_code);
 
         // Keep the full configured base URL (including any reverse-proxy
@@ -85,26 +100,58 @@ public class QrLoginActivity extends AppCompatActivity {
         }
         String qr_code = base + "?usercode=" + Uri.encode(user_code);
         try {
+            final int size = 400;
             BitMatrix matrix = new MultiFormatWriter().encode(
                     qr_code,
                     BarcodeFormat.QR_CODE,
-                    400,
-                    400
+                    size,
+                    size
             );
 
-            Bitmap bmp = Bitmap.createBitmap(400, 400, Bitmap.Config.RGB_565);
-
-            for (int x = 0; x < 400; x++) {
-                for (int y = 0; y < 400; y++) {
-                    bmp.setPixel(x, y, matrix.get(x, y) ? Color.BLACK : Color.WHITE);
+            Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.RGB_565);
+            int[] pixels = new int[size * size];
+            for (int y = 0; y < size; y++) {
+                int row = y * size;
+                for (int x = 0; x < size; x++) {
+                    pixels[row + x] = matrix.get(x, y) ? Color.BLACK : Color.WHITE;
                 }
             }
-
+            bmp.setPixels(pixels, 0, size, 0, 0, size, size);
             qrImage.setImageBitmap(bmp);
+            return true;
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Could not generate the pairing QR", e);
+            return false;
         }
+    }
+
+    private void showQrLoading() {
+        if (qrProgress == null) {
+            return;
+        }
+        qrProgress.setVisibility(View.VISIBLE);
+        qrError.setVisibility(View.GONE);
+        qrRetry.setVisibility(View.GONE);
+        qrImage.setVisibility(View.GONE);
+        qrCodeContainer.setVisibility(View.GONE);
+    }
+
+    private void showQrReady() {
+        qrProgress.setVisibility(View.GONE);
+        qrError.setVisibility(View.GONE);
+        qrRetry.setVisibility(View.GONE);
+        qrImage.setVisibility(View.VISIBLE);
+        qrCodeContainer.setVisibility(View.VISIBLE);
+    }
+
+    private void showQrError() {
+        qrProgress.setVisibility(View.GONE);
+        qrImage.setVisibility(View.GONE);
+        qrError.setVisibility(View.VISIBLE);
+        qrRetry.setVisibility(View.VISIBLE);
+        qrCodeContainer.setVisibility(View.GONE);
+        qrRetry.requestFocus();
     }
 
     private void initPolling() {

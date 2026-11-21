@@ -54,10 +54,42 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_margin="18dp"
-                android:contentDescription="@string/qr_code_content_description" />
+                android:contentDescription="@string/qr_code_content_description"
+                android:visibility="gone" />
+
+            <ProgressBar
+                android:id="@+id/qrProgress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:indeterminateTint="@color/brand_primary" />
+
+            <TextView
+                android:id="@+id/qrError"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:padding="24dp"
+                android:text="@string/qr_error_connecting"
+                android:textColor="@color/background_default"
+                android:textSize="16sp"
+                android:visibility="gone" />
         </com.google.android.material.card.MaterialCardView>
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/qrRetry"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:minWidth="180dp"
+            android:text="@string/retry"
+            android:textAllCaps="false"
+            android:visibility="gone"
+            app:cornerRadius="14dp" />
+
         <LinearLayout
+            android:id="@+id/qr_code_container"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/qr_code_bg"
@@ -66,7 +98,8 @@
             android:paddingStart="18dp"
             android:paddingTop="10dp"
             android:paddingEnd="18dp"
-            android:paddingBottom="10dp">
+            android:paddingBottom="10dp"
+            android:visibility="gone">
 
             <TextView
                 android:id="@+id/txtCodeLabel"
