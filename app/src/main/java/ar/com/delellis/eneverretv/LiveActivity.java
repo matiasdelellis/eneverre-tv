@@ -48,6 +48,7 @@ public class LiveActivity extends AppCompatActivity {
 
     private RtspSurfaceView videoLayout;
     private TextView messageView;
+    private View videoCover;
 
     private boolean scaled = false;
     private boolean ptzMode = false;
@@ -165,6 +166,7 @@ public class LiveActivity extends AppCompatActivity {
 
         videoLayout = findViewById(R.id.videoLayout);
         messageView = findViewById(R.id.live_message);
+        videoCover = findViewById(R.id.video_cover);
         getWindow().getDecorView().setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
@@ -366,6 +368,7 @@ public class LiveActivity extends AppCompatActivity {
                     failureReported = false;
                     autoRetryCount = 0;
                     cancelAutoRetry();
+                    hideVideoCover();
                     scheduleHideLiveInfo();
                 });
             }
@@ -413,6 +416,7 @@ public class LiveActivity extends AppCompatActivity {
             return;
         }
         Toast.makeText(this, R.string.error_playing, Toast.LENGTH_SHORT).show();
+        showVideoCover();
         needReconnect = true;
         messageView.setText(R.string.error_playing);
         messageView.setVisibility(VISIBLE);
@@ -432,6 +436,7 @@ public class LiveActivity extends AppCompatActivity {
         if (camera != null) {
             showLiveInfo(camera);
         }
+        showVideoCover();
         stopPlayback();
         needReconnect = true;
         findViewById(R.id.loading_progress).setVisibility(GONE);
@@ -590,6 +595,7 @@ public class LiveActivity extends AppCompatActivity {
         }
         // Keep the camera name/status visible while the retry is in flight;
         // it is hidden again after the first rendered frame.
+        showVideoCover();
         showLiveInfo(camera);
 
         String url = camera.getRtsp();
@@ -651,6 +657,9 @@ public class LiveActivity extends AppCompatActivity {
             return;
         }
 
+        showVideoCover();
+        showLiveInfo(camera);
+
         if (stoppingForSwitch || pendingCamera != null) {
             // A switch is already winding down; the newest request wins.
             pendingCamera = camera;
@@ -689,6 +698,7 @@ public class LiveActivity extends AppCompatActivity {
         final int generation = ++streamGeneration;
         failureReported = false;
         cancelAutoRetry();
+        showVideoCover();
         videoLayout.setStatusListener(createStatusListener(generation));
 
         findViewById(R.id.loading_progress).setVisibility(VISIBLE);
@@ -734,6 +744,32 @@ public class LiveActivity extends AppCompatActivity {
         } catch (Exception ignored) {
             // Surface may be momentarily owned by the decoder; clearing is best-effort.
         }
+    }
+
+    /**
+     * The SurfaceView keeps its last frame while the next RTSP session
+     * negotiates. Cover it with an opaque view until the new stream renders
+     * its first frame, instead of showing the previous camera.
+     */
+    private void showVideoCover() {
+        if (videoCover == null) {
+            return;
+        }
+        videoCover.animate().cancel();
+        videoCover.setAlpha(1f);
+        videoCover.setVisibility(VISIBLE);
+    }
+
+    private void hideVideoCover() {
+        if (videoCover == null) {
+            return;
+        }
+        videoCover.animate().cancel();
+        videoCover.animate()
+                .alpha(0f)
+                .setDuration(180)
+                .withEndAction(() -> videoCover.setVisibility(GONE))
+                .start();
     }
 
     @Override
@@ -851,6 +887,7 @@ public class LiveActivity extends AppCompatActivity {
         autoRetryCount = 0;
         failureReported = false;
         cancelAutoRetry();
+        showVideoCover();
         currentIndex = (currentIndex + 1) % cameraList.size();
         errorRefreshAttempted = false;
         requestPlay(cameraList.get(currentIndex), true, true);
@@ -866,6 +903,7 @@ public class LiveActivity extends AppCompatActivity {
         autoRetryCount = 0;
         failureReported = false;
         cancelAutoRetry();
+        showVideoCover();
         currentIndex = (currentIndex - 1 + cameraList.size()) % cameraList.size();
         errorRefreshAttempted = false;
         requestPlay(cameraList.get(currentIndex), true, true);
