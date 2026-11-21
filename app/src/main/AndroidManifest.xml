@@ -17,6 +17,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <application
+        android:name=".EneverreApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -50,6 +51,13 @@
             android:name=".QrLoginActivity"
             android:exported="true"
             android:theme="@style/Theme.EneverreTV">
+        </activity>
+
+        <activity
+            android:name=".CrashActivity"
+            android:exported="false"
+            android:process=":crash"
+            android:theme="@android:style/Theme.Material.NoActionBar">
         </activity>
 
         <activity

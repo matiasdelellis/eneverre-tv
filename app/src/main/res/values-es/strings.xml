@@ -46,4 +46,10 @@
     <string name="view_grid_button">Ver cuadrícula</string>
     <string name="retry">Reintentar</string>
     <string name="sign_in_again">Iniciar sesión de nuevo</string>
+    <string name="crash_title">Eneverre TV se cerró</string>
+    <string name="crash_sending">Enviando el reporte…</string>
+    <string name="crash_sent">Reporte enviado. Escaneá el QR.</string>
+    <string name="crash_failed">No se pudo enviar. El reporte queda abajo.</string>
+    <string name="crash_qr_hint">Escaneá con el teléfono</string>
+    <string name="crash_report_label">Reporte</string>
 </resources>

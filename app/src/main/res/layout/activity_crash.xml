@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:padding="24dp"
+    android:background="#FF0A0E13">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:layout_marginEnd="24dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/crash_title"
+            android:textColor="#FFF2F6FA"
+            android:textSize="28sp" />
+
+        <TextView
+            android:id="@+id/crash_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/crash_sending"
+            android:textColor="#FFA8B4C0"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/crash_url"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="#FF4FC3F7"
+            android:textIsSelectable="true"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="@string/crash_report_label"
+            android:textColor="#FFA8B4C0"
+            android:textSize="14sp" />
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="4dp">
+
+            <TextView
+                android:id="@+id/crash_report"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textColor="#FFF2F6FA"
+                android:textIsSelectable="true"
+                android:textSize="12sp" />
+        </ScrollView>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="300dp"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center_horizontal|center_vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="@string/crash_qr_hint"
+            android:textColor="#FFF2F6FA"
+            android:textSize="16sp" />
+
+        <ImageView
+            android:id="@+id/crash_qr"
+            android:layout_width="280dp"
+            android:layout_height="280dp"
+            android:background="#FFFFFFFF"
+            android:contentDescription="@string/crash_qr_hint"
+            android:padding="12dp"
+            android:scaleType="fitCenter"
+            android:visibility="gone" />
+    </LinearLayout>
+
+</LinearLayout>

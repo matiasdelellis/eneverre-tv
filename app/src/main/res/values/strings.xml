@@ -46,4 +46,10 @@
     <string name="view_grid_button">View grid</string>
     <string name="retry">Retry</string>
     <string name="sign_in_again">Sign in again</string>
+    <string name="crash_title">Eneverre TV stopped</string>
+    <string name="crash_sending">Sending the report…</string>
+    <string name="crash_sent">Report sent. Scan the QR code.</string>
+    <string name="crash_failed">Could not send the report. It is shown below.</string>
+    <string name="crash_qr_hint">Scan with your phone</string>
+    <string name="crash_report_label">Report</string>
 </resources>
