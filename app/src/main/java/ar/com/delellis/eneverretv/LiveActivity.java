@@ -113,6 +113,32 @@ public class LiveActivity extends AppCompatActivity {
     // refresh or clear the flags of the stream now on screen.
     private int streamGeneration = 0;
 
+    // Camera switching goes through a short stop handshake: SurfaceView's old
+    // decoder can still put a frame on the surface after stop(), so the next
+    // camera starts only once the old session says goodbye (or this times out).
+    private static final long SWITCH_STOP_TIMEOUT_MS = 1500;
+    private static final long SWITCH_SETTLE_MS = 150;
+    private Camera pendingCamera = null;
+    private boolean stoppingForSwitch = false;
+    private final Runnable switchTimeoutRunnable = () -> {
+        if (!stoppingForSwitch) {
+            return;
+        }
+        stoppingForSwitch = false;
+        Camera next = pendingCamera;
+        pendingCamera = null;
+        if (next != null) {
+            startStreamNow(next);
+        }
+    };
+    private final Runnable startPendingRunnable = () -> {
+        Camera next = pendingCamera;
+        pendingCamera = null;
+        if (next != null) {
+            startStreamNow(next);
+        }
+    };
+
     // Invalidates an in-flight camera-list refresh when the user switches
     // cameras before it completes.
     private int playRequestId = 0;
@@ -287,6 +313,14 @@ public class LiveActivity extends AppCompatActivity {
                     if (generation != streamGeneration) {
                         return;
                     }
+                    if (stoppingForSwitch) {
+                        stoppingForSwitch = false;
+                        mainHandler.removeCallbacks(switchTimeoutRunnable);
+                        if (pendingCamera != null) {
+                            mainHandler.postDelayed(startPendingRunnable, SWITCH_SETTLE_MS);
+                        }
+                        return;
+                    }
                     onPlaybackError(false);
                 });
             }
@@ -294,7 +328,7 @@ public class LiveActivity extends AppCompatActivity {
             @Override
             public void onRtspStatusFailedUnauthorized() {
                 runOnUiThread(() -> {
-                    if (generation != streamGeneration) {
+                    if (generation != streamGeneration || stoppingForSwitch) {
                         return;
                     }
                     onPlaybackError(true);
@@ -303,14 +337,14 @@ public class LiveActivity extends AppCompatActivity {
 
             @Override
             public void onRtspStatusFailed(String message) {
-                if (generation != streamGeneration) {
+                if (generation != streamGeneration || stoppingForSwitch) {
                     return;
                 }
                 // The library can include the URL in its error text; never log
                 // or show it verbatim because the last segment is the token.
                 Log.w(TAG, "RTSP failure: " + RtspUrl.redact(message));
                 runOnUiThread(() -> {
-                    if (generation == streamGeneration) {
+                    if (generation == streamGeneration && !stoppingForSwitch) {
                         onPlaybackError(false);
                     }
                 });
@@ -320,7 +354,7 @@ public class LiveActivity extends AppCompatActivity {
             public void onRtspFirstFrameRendered() {
                 // Invoked on the decoder thread.
                 runOnUiThread(() -> {
-                    if (generation != streamGeneration) {
+                    if (generation != streamGeneration || stoppingForSwitch) {
                         return;
                     }
                     findViewById(R.id.loading_progress).setVisibility(GONE);
@@ -605,11 +639,40 @@ public class LiveActivity extends AppCompatActivity {
             return;
         }
 
+        if (stoppingForSwitch || pendingCamera != null) {
+            // A switch is already winding down; the newest request wins.
+            pendingCamera = camera;
+            return;
+        }
+
         if (videoLayout.isStarted()) {
-            streamGeneration++;
+            pendingCamera = camera;
+            stoppingForSwitch = true;
             videoLayout.stop();
             clearSurface();
+            mainHandler.removeCallbacks(switchTimeoutRunnable);
+            mainHandler.postDelayed(switchTimeoutRunnable, SWITCH_STOP_TIMEOUT_MS);
+            return;
         }
+
+        startStreamNow(camera);
+    }
+
+    private void startStreamNow(Camera camera) {
+        if (camera == null || navigatingToLogin || wasStopped
+                || isFinishing() || isDestroyed()) {
+            return;
+        }
+        String url = camera.getRtsp();
+        if (!camera.isEnabled() || url == null || url.isEmpty()) {
+            showCameraUnavailable(unavailableReason(camera));
+            return;
+        }
+
+        mainHandler.removeCallbacks(switchTimeoutRunnable);
+        mainHandler.removeCallbacks(startPendingRunnable);
+        stoppingForSwitch = false;
+        pendingCamera = null;
 
         final int generation = ++streamGeneration;
         failureReported = false;
@@ -638,6 +701,10 @@ public class LiveActivity extends AppCompatActivity {
     private void stopPlayback() {
         // Invalidate callbacks from the stream being stopped.
         streamGeneration++;
+        mainHandler.removeCallbacks(switchTimeoutRunnable);
+        mainHandler.removeCallbacks(startPendingRunnable);
+        pendingCamera = null;
+        stoppingForSwitch = false;
         if (videoLayout != null && videoLayout.isStarted()) {
             videoLayout.stop();
             clearSurface();
