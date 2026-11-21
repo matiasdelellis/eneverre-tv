@@ -65,7 +65,7 @@ Go to `GitHub` → `Actions` → `Build Signed APK` → `Run workflow` and fill 
 The workflow will:
 1. Build and sign three APKs: `arm64-v8a`, `armeabi-v7a`, and `universal`.
 2. Upload the three APKs as artifacts (`eneverre-tv-arm64-<version>.apk`, `eneverre-tv-armv7-<version>.apk`, `eneverre-tv-universal-<version>.apk`). The universal is **only for download** — it is **not** published.
-3. Publish the two splits to `${ENEVERRE_HOST}admin/app/updates/tv` using the **multi-POST** shape (one POST per ABI, intermediate `finalize=false`, last one `finalize=true`). The `arm64` POST carries `apk_arm64-v8a`, the `armv7` POST carries `apk_armeabi-v7a` and commits the release. The server returns a `state` of `pending` then `committed`. Any non-2xx (including 401 / 413 / 422 / 503) fails the build.
+3. Publish the two splits to `${ENEVERRE_HOST}api/admin/app/updates/tv` using the **multi-POST** shape (one POST per ABI, intermediate `finalize=false`, last one `finalize=true`). The `arm64` POST carries `build_arm64-v8a`, the `armv7` POST carries `build_armeabi-v7a` and commits the release. The server returns a `state` of `pending` then `committed`. Any non-2xx (including 401 / 413 / 422 / 503) fails the build.
 
 While the release is staged, `GET /api/app/tv/update` returns `204 No Content`. After the final POST, the GET returns the full multi-ABI manifest. If a POST in the middle fails (e.g., 401, network blip), re-running the same POST replaces the build for that ABI — no need to start over.
 
