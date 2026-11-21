@@ -4,4 +4,5 @@
     <dimen name="login_vertical_padding">32dp</dimen>
     <dimen name="login_gap">48dp</dimen>
     <dimen name="qr_card_size">320dp</dimen>
+    <dimen name="login_logo_size">120dp</dimen>
 </resources>

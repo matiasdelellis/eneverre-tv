@@ -23,11 +23,11 @@
         android:gravity="center_vertical">
 
         <ImageView
-            android:layout_width="96dp"
-            android:layout_height="96dp"
+            android:layout_width="@dimen/login_logo_size"
+            android:layout_height="@dimen/login_logo_size"
             android:layout_marginBottom="20dp"
             android:contentDescription="@string/app_name"
-            android:src="@drawable/ic_launcher_foreground"
+            android:src="@drawable/ic_eneverre_login"
             android:tint="@color/brand_accent" />
 
         <TextView
