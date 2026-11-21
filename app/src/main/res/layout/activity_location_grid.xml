@@ -3,6 +3,8 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/browse_background"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     android:keepScreenOn="true">
 
     <TextView
@@ -23,6 +25,7 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:paddingStart="24dp"
+        android:paddingTop="16dp"
         android:paddingEnd="24dp"
         android:paddingBottom="24dp"
         android:columnCount="2"
