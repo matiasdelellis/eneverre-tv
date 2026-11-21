@@ -105,7 +105,7 @@ public class TvChannelManager {
 
         PreviewChannel channel = new PreviewChannel.Builder()
                 .setDisplayName(locationName)
-                .setDescription("Live cameras in " + locationName)
+                .setDescription(context.getString(R.string.tv_channel_description, locationName))
                 .setAppLinkIntentUri(appLink)
                 .build();
 

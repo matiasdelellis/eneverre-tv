@@ -36,6 +36,7 @@
     <string name="update_action_cancel">Cancel</string>
     <string name="update_channel_name">App updates</string>
     <string name="update_channel_description">Downloads and installs new versions of Eneverre TV.</string>
+    <string name="tv_channel_description">Live cameras in %1$s</string>
 
     <string name="locations_title">Locations</string>
     <string name="location_unnamed">Unnamed</string>
