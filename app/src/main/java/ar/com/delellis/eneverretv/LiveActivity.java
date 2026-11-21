@@ -366,6 +366,7 @@ public class LiveActivity extends AppCompatActivity {
                     failureReported = false;
                     autoRetryCount = 0;
                     cancelAutoRetry();
+                    scheduleHideLiveInfo();
                 });
             }
 
@@ -427,6 +428,10 @@ public class LiveActivity extends AppCompatActivity {
     private void showCameraUnavailable(int messageRes) {
         cancelAutoRetry();
         failureReported = true;
+        Camera camera = currentCamera();
+        if (camera != null) {
+            showLiveInfo(camera);
+        }
         stopPlayback();
         needReconnect = true;
         findViewById(R.id.loading_progress).setVisibility(GONE);
@@ -583,6 +588,9 @@ public class LiveActivity extends AppCompatActivity {
             refreshCamerasThenPlay(requestedCameraId, false);
             return;
         }
+        // Keep the camera name/status visible while the retry is in flight;
+        // it is hidden again after the first rendered frame.
+        showLiveInfo(camera);
 
         String url = camera.getRtsp();
         boolean refreshFirst = lastFailureUnauthorized
@@ -625,6 +633,10 @@ public class LiveActivity extends AppCompatActivity {
         info.setAlpha(1f);
         scrim.setAlpha(1f);
         info.setVisibility(VISIBLE);
+        mainHandler.removeCallbacks(hideLiveInfoRunnable);
+    }
+
+    private void scheduleHideLiveInfo() {
         mainHandler.removeCallbacks(hideLiveInfoRunnable);
         mainHandler.postDelayed(hideLiveInfoRunnable, LIVE_INFO_TIMEOUT_MS);
     }
@@ -684,7 +696,6 @@ public class LiveActivity extends AppCompatActivity {
         findViewById(R.id.reconnect_button).setVisibility(GONE);
         needReconnect = false;
 
-        Toast.makeText(this, camera.getName(), Toast.LENGTH_SHORT).show();
         showLiveInfo(camera);
 
         ensurePtzController(camera);
