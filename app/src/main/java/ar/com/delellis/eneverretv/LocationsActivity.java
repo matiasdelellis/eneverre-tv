@@ -15,6 +15,7 @@ import android.widget.TextView;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 import androidx.leanback.app.BrowseSupportFragment;
+import androidx.leanback.app.HeadersSupportFragment;
 import androidx.leanback.widget.ArrayObjectAdapter;
 import androidx.leanback.widget.HeaderItem;
 import androidx.leanback.widget.ListRow;
@@ -72,10 +73,35 @@ public class LocationsActivity extends FragmentActivity {
             setTitle(getString(R.string.locations_title));
             setHeadersState(HEADERS_ENABLED);
             setHeadersTransitionOnBackEnabled(true);
-            setBrandColor(ContextCompat.getColor(requireContext(), R.color.brand_color));
+            setBrandColor(Color.TRANSPARENT);
             setSearchAffordanceColor(Color.TRANSPARENT);
 
             setupRows();
+            styleHeadersPanel();
+        }
+
+        /**
+         * Leanback paints the headers panel with a flat brand color. Keep the
+         * list transparent and give the panel a dark, subtly brand-tinted
+         * gradient with a hairline separator instead.
+         */
+        private void styleHeadersPanel() {
+            View root = getView();
+            if (root == null) {
+                return;
+            }
+            root.post(() -> {
+                HeadersSupportFragment headers = getHeadersSupportFragment();
+                if (headers == null || headers.getView() == null) {
+                    return;
+                }
+                View headersView = headers.getView();
+                headersView.setBackgroundResource(R.drawable.browse_headers_background);
+                View list = headersView.findViewById(androidx.leanback.R.id.browse_headers);
+                if (list != null) {
+                    list.setBackgroundColor(Color.TRANSPARENT);
+                }
+            });
         }
 
         private void setupRows() {
