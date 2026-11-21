@@ -209,12 +209,11 @@ public class LocationGridActivity extends AppCompatActivity {
                 if (indicator != null) {
                     indicator.setVisibility(hasFocus ? View.VISIBLE : View.GONE);
                 }
-                float scale = hasFocus ? 1.03f : 1f;
-                v.animate()
-                        .scaleX(scale)
-                        .scaleY(scale)
-                        .setDuration(hasFocus ? 160 : 120)
-                        .start();
+                // Do not scale the tile: the video is a SurfaceView, whose
+                // surface does not follow the parent's scale transform, so a
+                // scaled focus ring would appear to stick out past the picture.
+                v.setScaleX(1f);
+                v.setScaleY(1f);
                 v.setElevation(hasFocus ? dp(10) : 0);
                 if (hasFocus) {
                     focusedIndex = (int) v.getTag();
