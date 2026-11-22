@@ -66,10 +66,11 @@ The workflow will:
 1. Build and sign three APKs: `arm64-v8a`, `armeabi-v7a`, and `universal`.
 2. Upload the three APKs as artifacts (`eneverre-tv-arm64-<version>.apk`, `eneverre-tv-armv7-<version>.apk`, `eneverre-tv-universal-<version>.apk`).
 3. Publish all three builds to `${ENEVERRE_HOST}api/admin/app/updates/tv` using the **multi-POST** shape (one POST per ABI, intermediate `finalize=false`, last one `finalize=true`). The `arm64` POST carries `build_arm64-v8a`, the `armv7` POST carries `build_armeabi-v7a`, and the `universal` POST carries `build_universal` and commits the release. The server returns a `state` of `pending` then `committed`. Any non-2xx (including 401 / 413 / 422 / 503) fails the build.
+4. Create and push an annotated tag `v<version>` on the built commit. No APKs are attached to the tag.
 
 While the release is staged, `GET /api/app/tv/update` returns `204 No Content`. After the final POST, the GET returns the full multi-ABI manifest. If a POST in the middle fails (e.g., 401, network blip), re-running the same POST replaces the build for that ABI — no need to start over.
 
-Once both POSTs are 2xx, the server has written the new manifest + the two APKs to its storage dir, and the next cold start of any installed client with a lower `versionCode` will pick the right build for its device and offer the update.
+Once all three POSTs are 2xx, the server has written the new manifest + the three APKs to its storage dir, and the next cold start of any installed client with a lower `versionCode` will pick the right build for its device and offer the update.
 
 ### How the client handles updates 🔄
 * On every cold start, **in parallel** with the auth flow, the app `GET`s `${ENEVERRE_HOST}api/app/tv/update` (the `tv` track is hard-coded in this build).

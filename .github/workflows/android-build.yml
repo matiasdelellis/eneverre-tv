@@ -19,6 +19,9 @@ on:
           - 'true'
           - 'false'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -160,3 +163,16 @@ jobs:
               *)   echo "::error::Publish failed with HTTP ${HTTP_STATUS}."; exit 1 ;;
             esac
           done
+
+      - name: Create version tag
+        run: |
+          set -euo pipefail
+          TAG="v${VERSION_NAME}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists; leaving it."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${TAG}" -m "Eneverre TV ${VERSION_NAME}"
+          git push origin "refs/tags/${TAG}"
