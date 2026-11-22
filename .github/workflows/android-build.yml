@@ -108,16 +108,21 @@ jobs:
 
           ARM64_APK=$(ls app/build/outputs/apk/release/*arm64*.apk    | head -n 1)
           ARMV7_APK=$(ls app/build/outputs/apk/release/*armeabi*.apk  | head -n 1)
+          UNIVERSAL_APK=$(ls app/build/outputs/apk/release/*universal*.apk | head -n 1)
           if [[ -z "${ARM64_APK}" || ! -f "${ARM64_APK}" ]]; then
             echo "::error::No arm64 APK found."; exit 1
           fi
           if [[ -z "${ARMV7_APK}" || ! -f "${ARMV7_APK}" ]]; then
             echo "::error::No armv7 APK found."; exit 1
           fi
+          if [[ -z "${UNIVERSAL_APK}" || ! -f "${UNIVERSAL_APK}" ]]; then
+            echo "::error::No universal APK found."; exit 1
+          fi
 
           declare -a ENTRIES=(
             "arm64-v8a:${ARM64_APK}"
             "armeabi-v7a:${ARMV7_APK}"
+            "universal:${UNIVERSAL_APK}"
           )
 
           LAST_INDEX=$(( ${#ENTRIES[@]} - 1 ))
