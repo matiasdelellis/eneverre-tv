@@ -51,6 +51,7 @@
     <string name="crash_send">Enviar reporte</string>
     <string name="crash_send_again">Reintentar envío</string>
     <string name="crash_sending">Enviando el reporte…</string>
+    <string name="crash_close">Cerrar</string>
     <string name="crash_sent">Reporte enviado. Escaneá el QR.</string>
     <string name="crash_failed">No se pudo enviar. El reporte queda abajo.</string>
     <string name="crash_qr_hint">Escaneá con el teléfono</string>

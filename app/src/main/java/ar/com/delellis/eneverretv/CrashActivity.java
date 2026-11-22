@@ -51,7 +51,9 @@ public class CrashActivity extends Activity {
     private ImageView qrView;
     private TextView qrHint;
     private Button sendButton;
+    private Button closeButton;
     private String report;
+    private String reportPath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,13 +65,28 @@ public class CrashActivity extends Activity {
         qrView = findViewById(R.id.crash_qr);
         qrHint = findViewById(R.id.crash_qr_hint);
         sendButton = findViewById(R.id.crash_send);
+        closeButton = findViewById(R.id.crash_close);
         TextView reportView = findViewById(R.id.crash_report);
 
-        String path = getIntent().getStringExtra(EXTRA_REPORT_FILE);
-        report = readReport(path);
+        reportPath = getIntent().getStringExtra(EXTRA_REPORT_FILE);
+        report = readReport(reportPath);
         reportView.setText(report);
         sendButton.setOnClickListener(v -> sendReport());
+        closeButton.setOnClickListener(v -> closeReport());
         sendButton.requestFocus();
+    }
+
+    @Override
+    public void onBackPressed() {
+        closeReport();
+    }
+
+    private void closeReport() {
+        if (reportPath != null) {
+            //noinspection ResultOfMethodCallIgnored
+            new File(reportPath).delete();
+        }
+        finish();
     }
 
     private void sendReport() {

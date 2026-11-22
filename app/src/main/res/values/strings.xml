@@ -51,6 +51,7 @@
     <string name="crash_send">Send report</string>
     <string name="crash_send_again">Retry upload</string>
     <string name="crash_sending">Sending the report…</string>
+    <string name="crash_close">Close</string>
     <string name="crash_sent">Report sent. Scan the QR code.</string>
     <string name="crash_failed">Could not send the report. It is shown below.</string>
     <string name="crash_qr_hint">Scan with your phone</string>

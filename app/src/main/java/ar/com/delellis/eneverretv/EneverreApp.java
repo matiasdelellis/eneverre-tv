@@ -31,21 +31,25 @@ public class EneverreApp extends Application {
             return;
         }
 
+        // A previous crash may have happened before the crash screen could be
+        // brought up. Show the saved report on the next launch instead.
+        File previousCrash = crashFile();
+        if (previousCrash.exists()) {
+            launchCrashActivity(previousCrash);
+        }
+
         final Thread.UncaughtExceptionHandler previous =
                 Thread.getDefaultUncaughtExceptionHandler();
         Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
             File reportFile = writeReport(throwable);
             if (reportFile != null) {
+                launchCrashActivity(reportFile);
                 try {
-                    Intent intent = new Intent(this, CrashActivity.class);
-                    intent.putExtra(CrashActivity.EXTRA_REPORT_FILE, reportFile.getAbsolutePath());
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(intent);
                     // Give the system time to bring up the separate :crash
                     // process before the crashing process is torn down.
                     Thread.sleep(700);
-                } catch (Throwable e) {
-                    Log.e(TAG, "Could not start the crash reporter", e);
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
                 }
             }
             if (previous != null) {
@@ -54,6 +58,21 @@ public class EneverreApp extends Application {
                 Process.killProcess(Process.myPid());
             }
         });
+    }
+
+    private void launchCrashActivity(File reportFile) {
+        try {
+            Intent intent = new Intent(this, CrashActivity.class);
+            intent.putExtra(CrashActivity.EXTRA_REPORT_FILE, reportFile.getAbsolutePath());
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+        } catch (Throwable e) {
+            Log.e(TAG, "Could not start the crash reporter", e);
+        }
+    }
+
+    private File crashFile() {
+        return new File(new File(getFilesDir(), CRASH_DIR), CRASH_FILE);
     }
 
     private File writeReport(Throwable throwable) {
@@ -66,7 +85,7 @@ public class EneverreApp extends Application {
                 report = report.substring(0, 100_000) + "\n… (truncated)";
             }
 
-            File dir = new File(getCacheDir(), CRASH_DIR);
+            File dir = new File(getFilesDir(), CRASH_DIR);
             if (!dir.exists() && !dir.mkdirs()) {
                 return null;
             }
